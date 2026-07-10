@@ -1901,11 +1901,7 @@ class SupabaseDB {
       price: data.price, duration: data.duration||60,
       service_code: _code
     });
-    const svc = { id:row.id, name:row.name, icon:row.icon,
-      price: parseFloat(row.price), duration:row.duration,
-      cat: data.cat, active:true };
-    this.services.push(svc);
-    return svc;
+    return row;
   }
 
   async updateService(id, data) {
