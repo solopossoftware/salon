@@ -335,6 +335,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
 .form-row{margin-bottom:12px}
 .form-row label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
 .form-row input,.form-row select,.form-row textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid #e2e8f0;font-size:15px;outline:none;background:#f8fafc;transition:border 0.2s;-webkit-appearance:none}
+.form-row input[type="checkbox"]{width:16px;height:16px;flex-shrink:0;padding:0;background:#fff;-webkit-appearance:checkbox;appearance:auto;accent-color:#1e40af;cursor:pointer}
 .form-row input:focus,.form-row select:focus{border-color:#1e40af;background:white}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 .modal-actions .btn{flex:1;padding:12px;font-size:13px;text-align:center}
@@ -2591,13 +2592,13 @@ function logout(){
   // 5. Show login screen immediately — no pending navigation possible
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
-  const li=document.getElementById('store-id-input');if(li)li.value='';
+  const li=document.getElementById('manual-store-id');if(li)li.value='';
   const pw=document.getElementById('login-pass');if(pw)pw.value='';
   // 6. Reset login step to store ID step
   const s1=document.getElementById('ls-step1');
   const s2=document.getElementById('ls-step2');
-  if(s1)s1.style.display='block';
-  if(s2)s2.style.display='none';
+  if(s1)s1.classList.add('active');
+  if(s2)s2.classList.remove('active');
   document.getElementById('login-err').textContent='';
 }
 
