@@ -1129,7 +1129,7 @@ function launchPOS(branchId) {
   var b = S.branches.find(function(x) { return x.id === branchId; });
   if (!b) return;
   if (b.renewal && daysLeft(b.renewal) < 0) { toast('Subscription expired. Renew first.', 'err'); return; }
-  var posUrl = 'https://salonaap.bizpoz.co/pos.html?store=' + encodeURIComponent(b.storeId || b.code);
+  var posUrl = 'https://solopossoftware.github.io/salon/pos.html?store=' + encodeURIComponent(b.storeId || b.code);
   window.open(posUrl, '_blank');
 }
 
