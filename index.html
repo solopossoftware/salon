@@ -1090,7 +1090,7 @@ function saveBranch() {
   if (eid) {
     req = doSaveBranch(payload, false).catch(function(err){ return retryWithoutBranchCode(payload, false, err); });
   } else {
-    payload.store_id = genStoreId(name);
+    payload.store_id = code ? code.trim() : genStoreId(name);
     req = doSaveBranch(payload, true).catch(function(err){ return retryWithoutBranchCode(payload, true, err); }).then(function(branchRow) {
       // Create the initial admin login for this branch (Step-2 login on pos.html)
       var u = document.getElementById('br-user').value.trim();
