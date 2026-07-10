@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1229">
+<title>SaaS Salon — Cloud Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --p:#1e40af;--pd:#0b1229;--pl:#3b6cd8;--pm:#1d4ed8;
+  --a:#f59e0b;--a2:#10b981;
+  --red:#e53935;--green:#16a34a;
+  --bg:#eef2fb;--sur:#fff;--sur2:#f7f9fd;
+  --bdr:#dbe4f5;--txt:#0b1229;--txt2:#6b7280;
+  --sh:0 2px 16px rgba(30,64,175,.08);
+  --shl:0 8px 40px rgba(30,64,175,.18);
+  --r:14px;--sw:248px;
+  --fn:'Plus Jakarta Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--fn);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
+
+/* LOGIN */
+#login-screen{background:linear-gradient(135deg,var(--pd) 0%,#142a5c 55%,#1e40af 100%);align-items:center;justify-content:center;flex-direction:column;padding:24px;position:relative;overflow:hidden;}
+#login-screen::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:700px;height:700px;background:radial-gradient(ellipse,rgba(124,58,237,.22) 0%,transparent 70%);pointer-events:none;}
+.ll{display:flex;align-items:center;gap:14px;margin-bottom:40px;position:relative;}
+.ll-icon{width:56px;height:56px;background:var(--a);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;box-shadow:0 8px 24px rgba(245,158,11,.4);}
+.ll .brand{font-size:2rem;font-weight:900;color:#fff;letter-spacing:-.5px;}
+.ll .sub{font-size:.75rem;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.lc{background:#fff;border-radius:24px;padding:36px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.35);}
+.lc-t{font-size:1.4rem;font-weight:800;color:var(--pd);margin-bottom:6px;}
+.lc-s{font-size:.85rem;color:var(--txt2);margin-bottom:28px;}
+.fg{margin-bottom:16px;}
+.fl{font-size:.75rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:6px;}
+.fi,.fs,.fta{width:100%;padding:12px 14px;border:2px solid var(--bdr);border-radius:10px;font-family:var(--fn);font-size:.95rem;color:var(--txt);background:var(--sur);transition:border-color .2s;}
+.fi:focus,.fs:focus,.fta:focus{outline:none;border-color:var(--p);}
+.fta{min-height:80px;resize:vertical;}
+.fs{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:600px){.frow{grid-template-columns:1fr;}}
+.dvd{border:none;border-top:1px solid var(--bdr);margin:20px 0;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:10px;font-family:var(--fn);font-size:.88rem;font-weight:700;border:none;cursor:pointer;transition:all .18s;}
+.btn-p{background:var(--p);color:#fff;}.btn-p:hover{background:var(--pm);}
+.btn-s{background:var(--green);color:#fff;}
+.btn-d{background:var(--red);color:#fff;}
+.btn-o{background:transparent;color:var(--p);border:2px solid var(--bdr);}.btn-o:hover{border-color:var(--p);}
+.btn-g{background:transparent;border:none;}
+.btn-sm{padding:7px 14px;font-size:.8rem;}
+.btn-lg{padding:15px 28px;font-size:1rem;border-radius:12px;}
+.btn-blk{width:100%;}
+
+/* SIDEBAR */
+#app-screen{flex-direction:row;}
+.sidebar{width:var(--sw);background:var(--pd);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;transition:transform .3s;}
+.sb-hdr{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sb-logo{display:flex;align-items:center;gap:10px;}
+.sb-logo-i{width:36px;height:36px;background:var(--a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.sb-logo .brand{font-size:1rem;font-weight:800;color:#fff;}
+.sb-logo .ver{font-size:.62rem;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;}
+nav{flex:1;padding:10px 0;overflow-y:auto;}
+.ns{font-size:.62rem;font-weight:700;opacity:.35;padding:16px 16px 6px;letter-spacing:1.5px;text-transform:uppercase;color:#fff;}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:.82rem;font-weight:500;color:rgba(255,255,255,.55);transition:all .18s;border-left:3px solid transparent;user-select:none;}
+.ni:hover{background:rgba(255,255,255,.07);color:#fff;}
+.ni.active{background:rgba(124,58,237,.25);color:#fff;border-left-color:var(--a);}
+.ni-ic{font-size:1rem;width:20px;text-align:center;}
+.nbadge{background:var(--a);color:var(--pd);font-size:.6rem;font-weight:800;padding:2px 6px;border-radius:20px;margin-left:auto;}
+.sb-ftr{padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-u{display:flex;align-items:center;gap:10px;}
+.sb-av{width:32px;height:32px;border-radius:50%;background:var(--a);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;color:var(--pd);}
+.sb-un{font-size:.8rem;font-weight:700;color:#fff;}
+.sb-ur{font-size:.62rem;color:rgba(255,255,255,.4);}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:#fff;border-bottom:1px solid var(--bdr);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(124,58,237,.06);}
+.tb-t{font-size:1.05rem;font-weight:800;color:var(--pd);}
+.tb-bc{font-size:.78rem;color:var(--txt2);}
+.tb-r{display:flex;align-items:center;gap:10px;}
+.tb-btn{background:var(--sur2);border:1px solid var(--bdr);border-radius:9px;padding:8px 14px;font-family:var(--fn);font-size:.8rem;font-weight:600;color:var(--txt);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .18s;}
+.tb-btn:hover{border-color:var(--p);color:var(--p);}
+.content{flex:1;padding:24px;overflow-y:auto;}
+.page{display:none;}.page.active{display:block;}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.pt{font-size:1.35rem;font-weight:800;color:var(--pd);}
+.ps{font-size:.8rem;color:var(--txt2);margin-top:3px;}
+
+/* STAT CARDS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+@media(max-width:1100px){.sg{grid-template-columns:repeat(2,1fr);}}
+.sc{background:#fff;border-radius:var(--r);padding:20px;border:1px solid var(--bdr);position:relative;overflow:hidden;transition:box-shadow .2s;}
+.sc:hover{box-shadow:var(--sh);}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;}
+.sc.purple::after{background:var(--p);}.sc.green::after{background:var(--green);}.sc.gold::after{background:var(--a);}.sc.teal::after{background:var(--a2);}.sc.red::after{background:var(--red);}
+.sc-ic{font-size:1.8rem;margin-bottom:10px;}
+.sc-lb{font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;}
+.sc-vl{font-size:1.65rem;font-weight:900;color:var(--pd);margin-top:4px;letter-spacing:-.5px;}
+.sc-ch{font-size:.72rem;color:var(--txt2);margin-top:4px;}
+.sc-ch.up{color:var(--green);}.sc-ch.dn{color:var(--red);}
+
+/* CARD */
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);margin-bottom:20px;overflow:hidden;}
+.ch{padding:15px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+.ct{font-size:.9rem;font-weight:800;color:var(--pd);}
+.cb{padding:20px;}.cb.np{padding:0;}
+
+/* TABLES */
+table{width:100%;border-collapse:collapse;font-size:.84rem;}
+th{background:var(--sur2);padding:10px 16px;text-align:left;font-size:.7rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr);}
+td{padding:12px 16px;border-bottom:1px solid var(--bdr);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f7f9fd;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;}
+.bg{background:#dcfce7;color:#15803d;}.br{background:#fee2e2;color:#dc2626;}.bo{background:#fef3c7;color:#b45309;}.bb{background:#dbe4f5;color:var(--p);}.bt{background:#d1fae5;color:#065f46;}
+
+/* SALON CARDS */
+.salon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-bottom:20px;}
+.salon-card{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);overflow:hidden;transition:box-shadow .2s,transform .2s;}
+.salon-card:hover{box-shadow:var(--shl);transform:translateY(-2px);}
+.sc-hdr{padding:22px;position:relative;overflow:hidden;}
+.sc-hdr.purple{background:linear-gradient(135deg,var(--pd),var(--p));}
+.sc-hdr.gold{background:linear-gradient(135deg,#78350f,var(--a));}
+.sc-hdr.teal{background:linear-gradient(135deg,#065f46,var(--a2));}
+.sc-hdr.rose{background:linear-gradient(135deg,#881337,#f43f5e);}
+.sc-hdr.slate{background:linear-gradient(135deg,#1e293b,#475569);}
+.sc-hdr::after{content:'✦';position:absolute;right:16px;top:14px;font-size:2.5rem;opacity:.1;color:#fff;}
+.sc-logo{width:46px;height:46px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:12px;}
+.sc-nm{font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:2px;}
+.sc-cd{font-size:.72rem;color:rgba(255,255,255,.55);}
+.sc-body{padding:16px 18px;}
+.sc-stats{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
+.sc-stat{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--bdr);}
+.sc-stat:last-child{border-right:none;}
+.sc-sv{font-size:1.1rem;font-weight:900;color:var(--pd);}
+.sc-sl{font-size:.65rem;color:var(--txt2);margin-top:1px;}
+.sc-acts{display:flex;gap:8px;}
+
+/* BRANCH CARDS */
+.branch-card{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:box-shadow .2s;}
+.branch-card:hover{box-shadow:var(--sh);}
+.bi{width:44px;height:44px;border-radius:12px;background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.b-info{flex:1;min-width:0;}
+.b-nm{font-size:.9rem;font-weight:700;color:var(--pd);}
+.b-mt{font-size:.72rem;color:var(--txt2);margin-top:2px;}
+.b-sub-info{font-size:.68rem;margin-top:4px;}
+.b-sub-info.ok{color:var(--green);}.b-sub-info.warn{color:var(--a);}.b-sub-info.dead{color:var(--red);}
+.subbar{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:5px;}
+.sbfill{height:100%;border-radius:3px;}
+.sbfill.ok{background:var(--a2);}.sbfill.warn{background:var(--a);}.sbfill.dead{background:var(--red);}
+.b-acts{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+
+/* ROLES */
+.role-list{display:flex;flex-direction:column;gap:10px;}
+.ri{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .18s;}
+.ri:hover{border-color:var(--p);box-shadow:var(--sh);}
+.ri.sel{border-color:var(--p);background:var(--sur2);}
+.ri-ic{width:38px;height:38px;border-radius:10px;background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.ri-nm{font-size:.88rem;font-weight:700;color:var(--pd);}
+.ri-ds{font-size:.73rem;color:var(--txt2);margin-top:1px;}
+.ri-pc{font-size:.7rem;color:var(--p);font-weight:700;background:var(--sur2);padding:3px 10px;border-radius:20px;margin-left:auto;white-space:nowrap;}
+
+/* PERMISSIONS */
+.perm-sec{margin-bottom:18px;}
+.perm-sec-t{font-size:.78rem;font-weight:800;color:var(--pd);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;}
+.perm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+@media(max-width:800px){.perm-grid{grid-template-columns:repeat(2,1fr);}}
+.perm-it{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--sur2);border-radius:8px;cursor:pointer;transition:background .15s;}
+.perm-it:hover{background:var(--bdr);}
+.pcb{width:17px;height:17px;border-radius:5px;border:2px solid var(--bdr);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.pcb.on{background:var(--p);border-color:var(--p);}
+.pcb.on::after{content:'✓';font-size:.6rem;color:#fff;font-weight:900;}
+.plb{font-size:.75rem;font-weight:500;}
+.two-col{display:grid;grid-template-columns:280px 1fr;gap:20px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}}
+.u-av{width:32px;height:32px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:#fff;}
+
+/* FILTER BAR */
+.fbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.fsel{padding:8px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-family:var(--fn);font-size:.8rem;color:var(--txt);background:#fff;cursor:pointer;}
+.fsel:focus{outline:none;border-color:var(--p);}
+.srch{position:relative;}
+.srch .fi{padding-left:36px;}
+.srch-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--txt2);font-size:.9rem;}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 24px;color:var(--txt2);}
+.empty-ic{font-size:3rem;margin-bottom:14px;}
+.empty-t{font-size:1rem;font-weight:700;color:var(--pd);margin-bottom:6px;}
+
+/* SWITCH */
+.sw-w{display:inline-flex;align-items:center;cursor:pointer;}
+.sw-w input{opacity:0;width:0;height:0;}
+.sw-sl{width:38px;height:21px;background:var(--bdr);border-radius:11px;transition:.2s;position:relative;}
+.sw-sl::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.2s;}
+.sw-w input:checked + .sw-sl{background:var(--p);}
+.sw-w input:checked + .sw-sl::after{transform:translateX(17px);}
+.sw-lb{margin-left:10px;font-size:.84rem;font-weight:500;}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(26,5,51,.55);z-index:9000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(5px);}
+.modal-ov.open{display:flex;}
+.modal{background:#fff;border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.25);animation:mIn .22s ease;}
+.modal.lg{max-width:720px;}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.mh{padding:20px 24px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+.mt{font-size:1.05rem;font-weight:800;color:var(--pd);}
+.mc-btn{background:var(--sur2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:.85rem;color:var(--txt2);display:flex;align-items:center;justify-content:center;}
+.mc-btn:hover{background:var(--bdr);}
+.mb{padding:24px;}
+.mf{padding:14px 24px;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;}
+
+/* TOAST */
+#toasts{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:12px 18px;font-size:.83rem;font-weight:600;color:var(--txt);box-shadow:var(--shl);display:flex;align-items:center;gap:8px;animation:tIn .3s ease;min-width:240px;transition:opacity .3s,transform .3s;}
+.toast.ok{border-left:4px solid var(--green);}.toast.err{border-left:4px solid var(--red);}.toast.inf{border-left:4px solid var(--p);}
+@keyframes tIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* PLAN CARDS */
+.plan-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.plan-c{border:2px solid var(--bdr);border-radius:14px;padding:20px;position:relative;}
+.plan-c.featured-plan{border-color:var(--p);}
+.plan-pop{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--a);color:var(--pd);font-size:.65rem;font-weight:800;padding:3px 12px;border-radius:20px;white-space:nowrap;text-transform:uppercase;}
+.plan-nm{font-size:.92rem;font-weight:800;color:var(--pd);margin-bottom:6px;}
+.plan-pr{font-size:1.8rem;font-weight:900;color:var(--p);letter-spacing:-.5px;}
+.plan-pr span{font-size:.85rem;font-weight:500;color:var(--txt2);}
+.plan-feat{margin-top:12px;font-size:.75rem;color:var(--txt2);line-height:1.8;list-style:none;}
+.plan-feat li::before{content:'✓ ';color:var(--p);font-weight:700;}
+
+/* INVOICE PREVIEW */
+.inv-preview{border:1px solid var(--bdr);border-radius:10px;padding:16px;background:var(--sur2);font-size:.78rem;line-height:1.7;max-width:320px;font-family:monospace;}
+
+/* USAGE */
+.usage-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr);}
+.usage-row:last-child{border-bottom:none;}
+.usage-label{font-size:.84rem;color:var(--txt);flex:1;}
+.usage-bar-w{width:110px;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;}
+.usage-bar-f{height:100%;background:var(--p);border-radius:3px;transition:width .3s;}
+.usage-ct{font-size:.78rem;font-weight:700;color:var(--pd);min-width:60px;text-align:right;}
+
+/* MOBILE */
+.mob-btn{display:none;background:transparent;border:none;font-size:1.3rem;cursor:pointer;padding:4px;}
+.sb-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:150;}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .mob-btn{display:block;}
+  .sb-ov.open{display:block;}
+  .sg{grid-template-columns:1fr 1fr;}
+  .plan-cards{grid-template-columns:1fr;}
+  .salon-grid{grid-template-columns:1fr;}
+  .two-col{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="screen active">
+  <div class="ll">
+    <div class="ll-icon">✦</div>
+    <div><div class="brand">SaaS Salon</div><div class="sub">Cloud &middot; Multi-Tenant</div></div>
+  </div>
+  <div class="lc">
+    <div class="lc-t">Welcome back 👋</div>
+    <div class="lc-s">Sign in to your SaaS Salon admin dashboard</div>
+    <div class="fg"><label class="fl">Username</label><input type="text" class="fi" id="l-user" value="" placeholder="Username"></div>
+    <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="l-pass" value="" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;"><span style="font-size:.8rem;color:var(--p);cursor:pointer;font-weight:600;">Forgot password?</span></div>
+    <button class="btn btn-p btn-blk btn-lg" onclick="doLogin()">Sign In &rarr;</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="screen">
+  <div class="sb-ov" id="sb-ov" onclick="closeSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sb-hdr">
+      <div class="sb-logo">
+        <div class="sb-logo-i">✦</div>
+        <div><div class="brand">SaaS Salon</div><div class="ver">v2.0 &middot; Cloud</div></div>
+      </div>
+    </div>
+    <nav id="sidebar-nav"></nav>
+    <div class="sb-ftr">
+      <div class="sb-u">
+        <div class="sb-av" id="sb-av">SA</div>
+        <div style="flex:1;"><div class="sb-un" id="sb-nm">Admin</div><div class="sb-ur" id="sb-rl">Owner</div></div>
+        <button class="btn btn-g btn-sm" style="color:rgba(255,255,255,.35);font-size:.72rem;" onclick="doLogout()">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="mob-btn" onclick="openSidebar()">&#9776;</button>
+        <div><div class="tb-t" id="tb-t">Dashboard</div><div class="tb-bc" id="tb-bc">SaaS Salon / Dashboard</div></div>
+      </div>
+      <div class="tb-r" id="tb-actions"></div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page" id="page-dashboard">
+        <div class="sg">
+          <div class="sc purple"><div class="sc-ic">💎</div><div class="sc-lb">Total Salons</div><div class="sc-vl" id="ds-salons">0</div><div class="sc-ch up" id="ds-salons-ch"></div></div>
+          <div class="sc gold"><div class="sc-ic">📍</div><div class="sc-lb">Active Branches</div><div class="sc-vl" id="ds-branches">0</div><div class="sc-ch" id="ds-branches-ch"></div></div>
+          <div class="sc teal"><div class="sc-ic">👤</div><div class="sc-lb">Total Staff</div><div class="sc-vl" id="ds-users">0</div><div class="sc-ch"></div></div>
+          <div class="sc gold"><div class="sc-ic">💰</div><div class="sc-lb">Platform MRR</div><div class="sc-vl" id="ds-mrr">$0</div><div class="sc-ch up">+12% vs last month</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+          <div>
+            <div class="card"><div class="ch"><div class="ct">Recent Branches</div><button class="btn btn-sm btn-o" onclick="showPage('branches')">View All</button></div><div class="cb np"><table><thead><tr><th>Branch</th><th>Plan</th><th>Status</th><th>MRR</th></tr></thead><tbody id="d-salons-tb"></tbody></table></div></div>
+            <div class="card"><div class="ch"><div class="ct">Recent Staff</div><button class="btn btn-sm btn-o" onclick="showPage('users')">View All</button></div><div class="cb np"><table><thead><tr><th>Staff</th><th>Role</th><th>Branch</th></tr></thead><tbody id="d-users-tb"></tbody></table></div></div>
+          </div>
+          <div>
+            <div class="card"><div class="ch"><div class="ct">Subscription Alerts</div></div><div class="cb" id="d-sub-alerts"></div></div>
+            <div class="card"><div class="ch"><div class="ct">Plan Distribution</div></div><div class="cb" id="d-plan-dist"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SALONS -->
+      <div class="page" id="page-salons">
+        <div class="ph"><div><div class="pt">Salon Groups</div><div class="ps">Manage all salon brands on the platform</div></div><button class="btn btn-p" onclick="openNewSalon()">+ New Salon</button></div>
+        <div class="salon-grid" id="salon-grid"></div>
+      </div>
+
+      <!-- BRANCHES -->
+      <div class="page" id="page-branches">
+        <div class="ph"><div><div class="pt">Branches</div><div class="ps">All branches &amp; subscription status</div></div><button class="btn btn-p" onclick="openNewBranch()">+ Add Branch</button></div>
+        <div class="fbar">
+          <div class="srch"><span class="srch-ic">&#128269;</span><input type="text" class="fi" id="branch-srch" placeholder="Search branch…" style="width:200px" oninput="renderBranches()"></div>
+          <select class="fsel" id="branch-sf" onchange="renderBranches()"><option value="">All Salons</option></select>
+          <select class="fsel" id="branch-pf" onchange="renderBranches()"><option value="">All Plans</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="enterprise">Enterprise</option></select>
+          <select class="fsel" id="branch-stf" onchange="renderBranches()"><option value="">All Status</option><option value="active">Active</option><option value="trial">Trial</option><option value="suspended">Suspended</option></select>
+        </div>
+        <div id="branches-list"></div>
+      </div>
+
+      <!-- SUBSCRIPTION -->
+      <div class="page" id="page-subscription">
+        <div class="ph"><div><div class="pt">Subscription Manager</div><div class="ps">Monitor renewals and subscription health</div></div></div>
+        <div class="sg" style="grid-template-columns:repeat(3,1fr);">
+          <div class="sc teal"><div class="sc-ic">&#10003;</div><div class="sc-lb">Active Subscriptions</div><div class="sc-vl" id="sub-a">0</div></div>
+          <div class="sc gold"><div class="sc-ic">&#9888;</div><div class="sc-lb">Expiring (30 days)</div><div class="sc-vl" id="sub-w">0</div></div>
+          <div class="sc red"><div class="sc-ic">&#128683;</div><div class="sc-lb">Expired / Suspended</div><div class="sc-vl" id="sub-d">0</div></div>
+        </div>
+        <div class="card"><div class="ch"><div class="ct">All Subscriptions</div></div><div class="cb np"><table><thead><tr><th>Branch</th><th>Salon</th><th>Plan</th><th>Start</th><th>Renewal</th><th>Days Left</th><th>Status</th><th>Action</th></tr></thead><tbody id="sub-tb"></tbody></table></div></div>
+      </div>
+
+      <!-- ROLES -->
+      <div class="page" id="page-roles">
+        <div class="ph"><div><div class="pt">Roles &amp; Permissions</div><div class="ps">Define what each staff role can access</div></div><button class="btn btn-p" onclick="openNewRole()">+ New Role</button></div>
+        <div class="two-col">
+          <div><div class="role-list" id="roles-list"></div></div>
+          <div id="role-detail"><div class="empty"><div class="empty-ic">&#128737;</div><div class="empty-t">Select a Role</div><div>Click a role to view permissions</div></div></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="page" id="page-users">
+        <div class="ph"><div><div class="pt">Staff Accounts</div><div class="ps">All staff across all salon branches</div></div><button class="btn btn-p" onclick="openNewUser()">+ Add Staff</button></div>
+        <div class="fbar">
+          <div class="srch"><span class="srch-ic">&#128269;</span><input type="text" class="fi" id="user-srch" placeholder="Search staff…" style="width:200px" oninput="renderUsers()"></div>
+          <select class="fsel" id="user-sf" onchange="renderUsers()"><option value="">All Branches</option></select>
+          <select class="fsel" id="user-rf" onchange="renderUsers()"><option value="">All Roles</option></select>
+        </div>
+        <div class="card"><div class="cb np"><table><thead><tr><th>Staff</th><th>Contact</th><th>Role</th><th>Branch</th><th>Status</th><th>Actions</th></tr></thead><tbody id="users-tb"></tbody></table></div></div>
+      </div>
+
+      <!-- INVOICES -->
+      <div class="page" id="page-invoices">
+        <div class="ph"><div><div class="pt">Invoice Templates</div><div class="ps">Customise receipt layout per branch</div></div><button class="btn btn-p" onclick="openNewInvoice()">+ New Template</button></div>
+        <div class="fbar"><select class="fsel" id="inv-branch-f" onchange="renderInvoices()"><option value="">All Branches</option></select></div>
+        <div id="invoice-list"></div>
+      </div>
+
+      <!-- BILLING -->
+      <div class="page" id="page-billing">
+        <div class="ph"><div><div class="pt">Billing &amp; Plans</div><div class="ps">Platform subscription overview and plan management</div></div></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+          <div>
+            <div class="card"><div class="ch"><div class="ct">Available Plans</div></div><div class="cb"><div class="plan-cards" id="plan-cards"></div></div></div>
+            <div class="card"><div class="ch"><div class="ct">Revenue Overview</div></div><div class="cb" id="billing-rev"></div></div>
+          </div>
+          <div>
+            <div class="card"><div class="ch"><div class="ct">Platform Usage</div></div><div class="cb" id="billing-usage"></div></div>
+            <div class="card"><div class="ch"><div class="ct">Stripe Integration</div></div><div class="cb">
+              <div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:14px;margin-bottom:12px;">
+                <div style="font-size:.8rem;font-weight:700;color:var(--pd);margin-bottom:4px;">&#128279; Stripe Webhook Endpoint</div>
+                <div style="font-family:monospace;font-size:.72rem;color:var(--txt2);word-break:break-all;">https://api.saassalon.app/webhooks/stripe</div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm btn-o" onclick="toast('Copied!','ok')">Copy URL</button>
+                <button class="btn btn-sm btn-p" onclick="toast('Opening Stripe dashboard…','ok')">Open Stripe &#8594;</button>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="ph"><div><div class="pt">Settings</div></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card"><div class="ch"><div class="ct">Platform Info</div></div><div class="cb">
+            <div class="fg"><label class="fl">Platform Name</label><input type="text" class="fi" value="SaaS Salon"></div>
+            <div class="fg"><label class="fl">Default Trial Period</label><select class="fs"><option>7 Days</option><option selected>14 Days</option><option>30 Days</option></select></div>
+            <div class="fg"><label class="fl">Default Currency</label><select class="fs"><option>QAR</option><option>AED</option><option>SAR</option><option>USD</option></select></div>
+            <button class="btn btn-p" onclick="toast('Settings saved','ok')">Save Settings</button>
+          </div></div>
+          <div class="card"><div class="ch"><div class="ct">Notifications</div></div><div class="cb" style="display:flex;flex-direction:column;gap:14px;">
+            <label class="sw-w"><input type="checkbox" checked><span class="sw-sl"></span><span class="sw-lb">Email on subscription renewal</span></label>
+            <label class="sw-w"><input type="checkbox" checked><span class="sw-sl"></span><span class="sw-lb">Alert 30 days before expiry</span></label>
+            <label class="sw-w"><input type="checkbox"><span class="sw-sl"></span><span class="sw-lb">Alert 7 days before expiry</span></label>
+            <label class="sw-w"><input type="checkbox" checked><span class="sw-sl"></span><span class="sw-lb">New salon registration</span></label>
+            <label class="sw-w"><input type="checkbox" checked><span class="sw-sl"></span><span class="sw-lb">Payment failed alerts</span></label>
+          </div></div>
+          <div class="card"><div class="ch"><div class="ct">Supabase Connection</div></div><div class="cb">
+            <div id="sb-conn-status" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--sur2);border-radius:10px;font-size:.82rem;font-weight:600;margin-bottom:14px;">
+              <div id="sb-dot" style="width:8px;height:8px;border-radius:50%;background:var(--a);flex-shrink:0;"></div>
+              <span id="sb-txt">Local mode</span>
+            </div>
+            <div class="fg"><label class="fl">Supabase URL</label><input type="text" class="fi" placeholder="https://xxx.supabase.co"></div>
+            <div class="fg"><label class="fl">Anon Key</label><input type="password" class="fi" placeholder="eyJ…"></div>
+            <button class="btn btn-p btn-sm" onclick="toast('Connection saved','ok')">Save &amp; Test</button>
+          </div></div>
+          <div class="card"><div class="ch"><div class="ct" style="color:var(--red);">Danger Zone</div></div><div class="cb">
+            <p style="font-size:.8rem;color:var(--txt2);margin-bottom:14px;">These actions are irreversible.</p>
+            <button class="btn btn-d btn-sm" onclick="if(confirm('Reset ALL data?'))resetAll()">Reset All Platform Data</button>
+          </div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-ov" id="m-salon">
+  <div class="modal">
+    <div class="mh"><div class="mt" id="m-salon-t">Create New Salon</div><button class="mc-btn" onclick="closeModal('m-salon')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label class="fl">Salon Name *</label><input type="text" class="fi" id="sl-name" placeholder="Bella Beauty Studio"></div><div class="fg"><label class="fl">Brand Code *</label><input type="text" class="fi" id="sl-code" placeholder="BBS"></div></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="fta" id="sl-desc" placeholder="Short description…"></textarea></div>
+      <div class="frow"><div class="fg"><label class="fl">Color Theme</label><select class="fs" id="sl-color"><option value="purple">Purple</option><option value="gold">Gold</option><option value="teal">Teal</option><option value="rose">Rose</option><option value="slate">Slate</option></select></div><div class="fg"><label class="fl">Icon (emoji)</label><input type="text" class="fi" id="sl-icon" maxlength="4" value="✂️"></div></div>
+      <div class="fg"><label class="fl">Owner Contact</label><input type="text" class="fi" id="sl-contact" placeholder="email or phone"></div>
+      <input type="hidden" id="sl-eid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-salon')">Cancel</button><button class="btn btn-p" onclick="saveSalon()">Save Salon</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-branch">
+  <div class="modal lg">
+    <div class="mh"><div class="mt" id="m-branch-t">Add New Branch</div><button class="mc-btn" onclick="closeModal('m-branch')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label class="fl">Branch Name *</label><input type="text" class="fi" id="br-name" placeholder="Main Branch"></div><div class="fg"><label class="fl">Salon Group *</label><select class="fs" id="br-salon"></select></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Branch Code</label><input type="text" class="fi" id="br-code" placeholder="BR-001"></div><div class="fg"><label class="fl">Plan</label><select class="fs" id="br-plan"><option value="starter">Starter — $29/mo</option><option value="growth" selected>Growth — $79/mo</option><option value="enterprise">Enterprise — $199/mo</option></select></div></div>
+      <div class="fg"><label class="fl">Address</label><input type="text" class="fi" id="br-addr" placeholder="Full address"></div>
+      <div class="frow"><div class="fg"><label class="fl">Phone</label><input type="text" class="fi" id="br-phone" placeholder="+974 …"></div><div class="fg"><label class="fl">Currency</label><select class="fs" id="br-currency"><option>QAR</option><option>AED</option><option>SAR</option><option>USD</option></select></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Start Date</label><input type="date" class="fi" id="br-start"></div><div class="fg"><label class="fl">Renewal Date</label><input type="date" class="fi" id="br-renewal"></div></div>
+      <hr class="dvd">
+      <div id="br-login-section">
+        <div style="font-size:.85rem;font-weight:700;color:var(--pd);margin-bottom:14px;">First Admin Login (creates a POS user for this branch)</div>
+        <div class="frow"><div class="fg"><label class="fl">Admin Username</label><input type="text" class="fi" id="br-user" placeholder="admin"></div><div class="fg"><label class="fl">Admin Password</label><input type="text" class="fi" id="br-pass" placeholder="Set a password"></div></div>
+        <div style="font-size:.72rem;color:var(--txt2);margin:-6px 0 14px;">To manage logins for an existing branch, use <strong>Staff Accounts</strong> instead.</div>
+      </div>
+      <hr class="dvd">
+      <div style="font-size:.85rem;font-weight:700;color:var(--pd);margin-bottom:14px;">Feature Access</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <label class="sw-w"><input type="checkbox" id="bf-pos" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">POS</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-appts" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">Appointments</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-inv" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">Inventory</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-staff" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">Staff Mgmt</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-rep" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">Reports</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-exp"><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">Expenses</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-crm" checked><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">CRM</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-sms"><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">SMS Alerts</span></label>
+        <label class="sw-w"><input type="checkbox" id="bf-api"><span class="sw-sl"></span><span class="sw-lb" style="font-size:.78rem;">API Access</span></label>
+      </div>
+      <input type="hidden" id="br-eid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-branch')">Cancel</button><button class="btn btn-p" onclick="saveBranch()">Save Branch</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-renew">
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">Renew — <span id="renew-nm" style="color:var(--p)"></span></div><button class="mc-btn" onclick="closeModal('m-renew')">&#10005;</button></div>
+    <div class="mb">
+      <div class="fg"><label class="fl">New Renewal Date</label><input type="date" class="fi" id="renew-dt"></div>
+      <div class="fg"><label class="fl">Plan</label><select class="fs" id="renew-plan"><option value="starter">Starter — $29/mo</option><option value="growth">Growth — $79/mo</option><option value="enterprise">Enterprise — $199/mo</option></select></div>
+      <div class="fg"><label class="fl">Notes (optional)</label><textarea class="fta" id="renew-nt" placeholder="Payment ref, invoice #…" style="min-height:60px;"></textarea></div>
+      <input type="hidden" id="renew-sid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-renew')">Cancel</button><button class="btn btn-s" onclick="doRenew()">&#10003; Confirm Renewal</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-role">
+  <div class="modal lg">
+    <div class="mh"><div class="mt" id="m-role-t">Create Role</div><button class="mc-btn" onclick="closeModal('m-role')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label class="fl">Role Name *</label><input type="text" class="fi" id="r-name" placeholder="e.g. Senior Stylist"></div><div class="fg"><label class="fl">Description</label><input type="text" class="fi" id="r-desc" placeholder="Short description"></div></div>
+      <div id="r-perms"></div>
+      <input type="hidden" id="r-eid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-role')">Cancel</button><button class="btn btn-p" onclick="saveRole()">Save Role</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-user">
+  <div class="modal lg">
+    <div class="mh"><div class="mt" id="m-user-t">Add Staff Member</div><button class="mc-btn" onclick="closeModal('m-user')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label class="fl">Full Name *</label><input type="text" class="fi" id="u-name" placeholder="Fatima Al-Dosari"></div><div class="fg"><label class="fl">Username *</label><input type="text" class="fi" id="u-uname" placeholder="fatima"></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Email</label><input type="email" class="fi" id="u-email" placeholder="staff@salon.com"></div><div class="fg"><label class="fl">Phone</label><input type="text" class="fi" id="u-phone" placeholder="+974 …"></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Branch *</label><select class="fs" id="u-branch"></select></div><div class="fg"><label class="fl">Role *</label><select class="fs" id="u-role"></select></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Password *</label><input type="password" class="fi" id="u-pass" placeholder="Min 4 characters"></div><div class="fg"><label class="fl">Commission %</label><input type="number" class="fi" id="u-comm" value="12" min="0" max="50"></div></div>
+      <input type="hidden" id="u-eid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-user')">Cancel</button><button class="btn btn-p" onclick="saveUser()">Save Staff</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-invoice">
+  <div class="modal lg">
+    <div class="mh"><div class="mt" id="m-inv-t">New Invoice Template</div><button class="mc-btn" onclick="closeModal('m-invoice')">&#10005;</button></div>
+    <div class="mb">
+      <div class="frow"><div class="fg"><label class="fl">Template Name *</label><input type="text" class="fi" id="inv-name" placeholder="e.g. Main Receipt" oninput="updateInvPreview()"></div><div class="fg"><label class="fl">Assign to Branch *</label><select class="fs" id="inv-branch" onchange="updateInvPreview()"></select></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Salon Display Name</label><input type="text" class="fi" id="inv-biz" placeholder="Dawa Belle Salon" oninput="updateInvPreview()"></div><div class="fg"><label class="fl">Tagline</label><input type="text" class="fi" id="inv-tag" placeholder="Beauty is our passion" oninput="updateInvPreview()"></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Address Line 1</label><input type="text" class="fi" id="inv-addr1" placeholder="The Pearl, Doha" oninput="updateInvPreview()"></div><div class="fg"><label class="fl">Address Line 2</label><input type="text" class="fi" id="inv-addr2" placeholder="Qatar" oninput="updateInvPreview()"></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Phone</label><input type="text" class="fi" id="inv-phone" placeholder="+974 …" oninput="updateInvPreview()"></div><div class="fg"><label class="fl">VAT / Tax Number</label><input type="text" class="fi" id="inv-tax" placeholder="VAT: 300xxxxxxxxx" oninput="updateInvPreview()"></div></div>
+      <div class="fg"><label class="fl">Footer Message</label><textarea class="fta" id="inv-footer" placeholder="Thank you for visiting! Book your next appointment…" style="min-height:60px;" oninput="updateInvPreview()"></textarea></div>
+      <hr class="dvd">
+      <div style="font-size:.88rem;font-weight:700;color:var(--pd);margin-bottom:14px;">Layout Options</div>
+      <div class="frow"><div class="fg"><label class="fl">Paper Size</label><select class="fs" id="inv-paper"><option value="80mm">80mm Thermal</option><option value="58mm">58mm Thermal</option><option value="A4">A4</option><option value="A5">A5</option></select></div><div class="fg"><label class="fl">Header Style</label><select class="fs" id="inv-style"><option value="simple">Simple Text</option><option value="bold">Bold Header</option><option value="minimal">Minimal</option></select></div></div>
+      <div class="frow"><div class="fg"><label class="fl">Show Tax on Receipt</label><label class="sw-w" style="margin-top:8px;"><input type="checkbox" id="inv-show-tax" checked><span class="sw-sl"></span><span class="sw-lb">Yes</span></label></div><div class="fg"><label class="fl">Show Loyalty Points</label><label class="sw-w" style="margin-top:8px;"><input type="checkbox" id="inv-show-pts" checked><span class="sw-sl"></span><span class="sw-lb">Yes</span></label></div></div>
+      <hr class="dvd">
+      <div style="font-size:.88rem;font-weight:700;color:var(--pd);margin-bottom:10px;">Preview</div>
+      <div id="inv-preview" class="inv-preview"></div>
+      <input type="hidden" id="inv-eid">
+    </div>
+    <div class="mf"><button class="btn btn-o" onclick="closeModal('m-invoice')">Cancel</button><button class="btn btn-p" onclick="saveInvoice()">Save Template</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// PLANS CONFIG
+// ═══════════════════════════════════════════════════════════════
+var PLANS = {
+  starter:    { name:'Starter',    price:29,  limits:{ branches:1,  staff:3  } },
+  growth:     { name:'Growth',     price:79,  limits:{ branches:3,  staff:-1 } },
+  enterprise: { name:'Enterprise', price:199, limits:{ branches:-1, staff:-1 } }
+};
+
+var PERMS = {
+  'POS & Sales':   ['process_sale','apply_discount','void_sale','refund','split_payment','gift_voucher'],
+  'Appointments':  ['view_calendar','book_appointment','edit_appointment','cancel_appointment'],
+  'Customers':     ['view_customers','add_customer','edit_customer','view_history','loyalty_points'],
+  'Inventory':     ['view_inventory','manage_inventory','purchase_orders','suppliers'],
+  'Staff':         ['view_staff','manage_staff','view_attendance','manage_attendance','view_commission'],
+  'Reports':       ['daily_report','revenue_report','staff_report','expense_report','export_data'],
+  'Settings':      ['manage_settings','manage_services','manage_users','billing']
+};
+
+var STORAGE_KEY = 'saassalon_v2';
+var S = { user:null, salons:[], branches:[], roles:[], users:[], invoices:[], activeRole:null };
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE — same project as pos.html, so branches/users created
+// here are real and immediately loginable from the POS app.
+// ═══════════════════════════════════════════════════════════════
+var SUPA_URL = 'https://lippygmjhhhjgfczzkkd.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpcHB5Z21qaGhoamdmY3p6a2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjE4NDgsImV4cCI6MjA5OTE5Nzg0OH0.GCEHv-ATAKXTNnIxx4P9y6Cwl3fwhy6U8DSFk8PGKHs';
+var SB_H = { 'Content-Type':'application/json', 'apikey':SUPA_KEY, 'Authorization':'Bearer '+SUPA_KEY, 'Prefer':'return=representation' };
+
+function sbGet(table, query) {
+  return fetch(SUPA_URL+'/rest/v1/'+table+'?'+(query||''), { headers: SB_H })
+    .then(function(r){ if(!r.ok) throw new Error('GET '+table+' failed ('+r.status+')'); return r.json(); });
+}
+function sbPost(table, data) {
+  return fetch(SUPA_URL+'/rest/v1/'+table, { method:'POST', headers:SB_H, body:JSON.stringify(data) })
+    .then(function(r){ if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||('POST '+table+' failed')); }); return r.json(); })
+    .then(function(j){ return Array.isArray(j)?j[0]:j; });
+}
+function sbPatch(table, filter, data) {
+  return fetch(SUPA_URL+'/rest/v1/'+table+'?'+filter, { method:'PATCH', headers:SB_H, body:JSON.stringify(data) })
+    .then(function(r){ if(!r.ok) return r.json().then(function(j){ throw new Error(j.message||('PATCH '+table+' failed')); }); var t=r.headers.get('content-length'); return t==='0'?null:r.json(); });
+}
+function sbDel(table, filter) {
+  return fetch(SUPA_URL+'/rest/v1/'+table+'?'+filter, { method:'DELETE', headers:SB_H })
+    .then(function(r){ if(!r.ok) throw new Error('DELETE '+table+' failed ('+r.status+')'); return true; });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEED DATA
+// ═══════════════════════════════════════════════════════════════
+// Map Supabase salon_groups row -> S.salons shape
+function mapSalonRow(r) {
+  return { id:String(r.id), name:r.name, code:(r.name||'').slice(0,3).toUpperCase(),
+    desc:r.owner_name?('Owner: '+r.owner_name):'', color: r.color==='#e11d48'?'purple':'gold',
+    icon:r.icon||'\u2702\ufe0f', contact:r.owner_email||'', _raw:r };
+}
+// Map Supabase branches row -> S.branches shape (settings jsonb carries extra fields)
+function mapBranchRow(r) {
+  var s = r.settings || {};
+  return {
+    id:String(r.id), name:r.name, code:r.branch_code||r.store_id||'', storeId:r.store_id,
+    salon:r.salon_group_id?String(r.salon_group_id):'', plan:r.plan||'trial',
+    addr:s.addr||'', phone:s.phone||'', currency:r.currency||'QAR',
+    start:s.start||'', renewal:r.renewal_date||'',
+    status:r.status||'trial', stripeId:s.stripeId||null,
+    features: s.features || {pos:true,appts:true,inv:true,staff:true,rep:true,crm:true},
+    _raw:r
+  };
+}
+// Map Supabase branch_users row -> S.users shape
+function mapUserRow(r, branchId) {
+  return { id:String(r.id), name:r.name, uname:r.username, email:r.email||'',
+    phone:r.phone||'', branch:String(branchId), role: r.role==='admin'?'r1':(r.role==='cashier'?'r3':'r2'),
+    comm:r.commission||12, status: r.active===false?'inactive':'active', _raw:r };
+}
+
+function initData() {
+  // Roles & invoice templates aren't in Supabase yet (SaaS-Admin-only concepts) -
+  // keep them in localStorage so customization persists, while salons/branches/users
+  // are always loaded fresh from the shared database.
+  var saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      var d = JSON.parse(saved);
+      S.roles = d.roles && d.roles.length ? d.roles : defaultRoles();
+      S.invoices = d.invoices || [];
+    } catch(e) { S.roles = defaultRoles(); S.invoices = []; }
+  } else {
+    S.roles = defaultRoles();
+    S.invoices = [];
+  }
+  S.salons = []; S.branches = []; S.users = [];
+}
+
+function defaultRoles() {
+  return [
+    { id:'r1', name:'Admin',          desc:'Full salon access',              icon:'\ud83d\udc51', perms:['all'] },
+    { id:'r2', name:'Senior Stylist', desc:'Sales, bookings, customers',     icon:'\u2702\ufe0f', perms:['process_sale','apply_discount','void_sale','view_calendar','book_appointment','edit_appointment','cancel_appointment','view_customers','add_customer','edit_customer','view_history'] },
+    { id:'r3', name:'Cashier',        desc:'POS and billing only',           icon:'\ud83d\udcb3', perms:['process_sale','apply_discount','split_payment','view_customers','add_customer'] },
+    { id:'r4', name:'Receptionist',   desc:'Bookings and customer management',icon:'\ud83d\udccb',perms:['view_calendar','book_appointment','cancel_appointment','view_customers','add_customer','edit_customer','view_history','loyalty_points'] },
+    { id:'r5', name:'Manager',        desc:'All except settings',            icon:'\ud83d\udcca', perms:['process_sale','apply_discount','void_sale','refund','split_payment','view_calendar','book_appointment','edit_appointment','cancel_appointment','view_customers','add_customer','edit_customer','view_history','view_inventory','view_staff','view_attendance','daily_report','revenue_report','staff_report','expense_report'] }
+  ];
+}
+
+// Fetch salons, branches and users fresh from Supabase. Call before rendering
+// any page that needs them, and after every create/update/delete.
+function loadFromSupabase() {
+  return Promise.all([
+    sbGet('salon_groups', 'select=*&order=name.asc'),
+    sbGet('branches', 'select=*&order=name.asc')
+  ]).then(function(res) {
+    var salonRows = res[0] || [], branchRows = res[1] || [];
+    S.salons = salonRows.map(mapSalonRow);
+    S.branches = branchRows.map(mapBranchRow);
+    if (!branchRows.length) { S.users = []; return; }
+    var branchIds = branchRows.map(function(b){ return b.id; }).join(',');
+    return sbGet('branch_users', 'branch_id=in.(' + branchIds + ')&select=*&order=name.asc')
+      .then(function(userRows) {
+        S.users = (userRows||[]).map(function(u){ return mapUserRow(u, u.branch_id); });
+      });
+  }).catch(function(err) {
+    console.error('Supabase load failed:', err);
+    toast('Could not load data from database: ' + err.message, 'err');
+    S.salons = []; S.branches = []; S.users = [];
+  });
+}
+
+function saveData() {
+  // Only roles & invoice templates are local; salons/branches/users live in Supabase.
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ roles:S.roles, invoices:S.invoices }));
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ salons:S.salons, branches:S.branches, roles:S.roles, users:S.users, invoices:S.invoices }));
+}
+
+function daysLeft(d) { if (!d) return 9999; return Math.floor((new Date(d) - new Date()) / 86400000); }
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+var ADMINS = [
+  { uname:'solopos@admin.com', pass:'Admin@123', name:'SaaS Admin', role:'Owner' }
+];
+
+function doLogin() {
+  var u = document.getElementById('l-user').value.trim();
+  var p = document.getElementById('l-pass').value;
+  if (!u || !p) { toast('Enter credentials', 'err'); return; }
+  var found = ADMINS.find(function(a) { return a.uname === u && a.pass === p; });
+  if (!found) { toast('Invalid credentials', 'err'); return; }
+  S.user = found;
+  document.getElementById('sb-av').textContent = found.name.split(' ').map(function(n){ return n[0]; }).join('').slice(0,2).toUpperCase();
+  document.getElementById('sb-nm').textContent = found.name;
+  document.getElementById('sb-rl').textContent = found.role;
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+  buildNav();
+  showPage('dashboard');
+  toast('Loading your data\u2026', 'inf');
+  loadFromSupabase().then(function() {
+    buildNav();
+    var current = document.querySelector('.ni.active');
+    showPage(current ? current.dataset.pg : 'dashboard');
+  });
+}
+
+function doLogout() {
+  S.user = null;
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('login-screen').classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+var NAV_ITEMS = [
+  { sec:'Overview' },
+  { id:'dashboard',    ic:'📊', label:'Dashboard' },
+  { sec:'Salons' },
+  { id:'salons',       ic:'💎', label:'Salon Groups',      badge:'salons' },
+  { id:'branches',     ic:'📍', label:'Branches',          badge:'branches' },
+  { id:'subscription', ic:'💳', label:'Subscriptions' },
+  { sec:'Staff' },
+  { id:'roles',        ic:'🛡️', label:'Roles & Permissions' },
+  { id:'users',        ic:'👥', label:'Staff Accounts' },
+  { sec:'System' },
+  { id:'invoices',     ic:'🧾', label:'Invoice Templates' },
+  { id:'billing',      ic:'💰', label:'Billing & Plans' },
+  { id:'settings',     ic:'⚙️', label:'Settings' }
+];
+
+var PAGE_TITLES = { dashboard:'Dashboard', salons:'Salon Groups', branches:'Branches', subscription:'Subscription Manager', roles:'Roles & Permissions', users:'Staff Accounts', invoices:'Invoice Templates', billing:'Billing & Plans', settings:'Settings' };
+
+function buildNav() {
+  var html = '';
+  NAV_ITEMS.forEach(function(item) {
+    if (item.sec) { html += '<div class="ns">' + item.sec + '</div>'; return; }
+    var cnt = item.badge === 'salons' ? S.salons.length : item.badge === 'branches' ? S.branches.length : 0;
+    html += '<div class="ni" data-pg="' + item.id + '" onclick="showPage(\'' + item.id + '\')">' +
+      '<span class="ni-ic">' + item.ic + '</span> ' + item.label +
+      (cnt > 0 ? '<span class="nbadge">' + cnt + '</span>' : '') + '</div>';
+  });
+  document.getElementById('sidebar-nav').innerHTML = html;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  var pg = document.getElementById('page-' + id);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('.ni').forEach(function(n) { n.classList.toggle('active', n.dataset.pg === id); });
+  document.getElementById('tb-t').textContent  = PAGE_TITLES[id] || id;
+  document.getElementById('tb-bc').textContent = 'SaaS Salon / ' + (PAGE_TITLES[id] || id);
+  closeSidebar();
+  var actions = {
+    salons:   '<button class="tb-btn" onclick="openNewSalon()">+ New Salon</button>',
+    branches: '<button class="tb-btn" onclick="openNewBranch()">+ Add Branch</button>',
+    users:    '<button class="tb-btn" onclick="openNewUser()">+ Add Staff</button>',
+    roles:    '<button class="tb-btn" onclick="openNewRole()">+ New Role</button>',
+    invoices: '<button class="tb-btn" onclick="openNewInvoice()">+ New Template</button>'
+  };
+  document.getElementById('tb-actions').innerHTML = actions[id] || '';
+  var fns = { dashboard:renderDashboard, salons:renderSalons, branches:renderBranches, subscription:renderSubscription, roles:renderRoles, users:renderUsers, invoices:renderInvoices, billing:renderBilling };
+  if (fns[id]) fns[id]();
+}
+
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sb-ov').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sb-ov').classList.remove('open'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  var activeBranches = S.branches.filter(function(b) { return b.status === 'active'; }).length;
+  var mrr = S.branches.filter(function(b) { return b.status === 'active'; })
+    .reduce(function(a, b) { return a + (PLANS[b.plan] ? PLANS[b.plan].price : 0); }, 0);
+
+  document.getElementById('ds-salons').textContent    = S.salons.length;
+  document.getElementById('ds-salons-ch').textContent = S.salons.length + ' total groups';
+  document.getElementById('ds-branches').textContent  = activeBranches;
+  document.getElementById('ds-branches-ch').textContent = S.branches.filter(function(b) { return b.status === 'trial'; }).length + ' on trial';
+  document.getElementById('ds-users').textContent     = S.users.length;
+  document.getElementById('ds-mrr').textContent       = '$' + mrr;
+
+  // Recent branches table
+  document.getElementById('d-salons-tb').innerHTML = S.branches.slice(0,6).map(function(b) {
+    var p = PLANS[b.plan];
+    return '<tr>' +
+      '<td><strong>' + b.name + '</strong><br><span style="font-size:.7rem;color:var(--txt2);">' + b.code + '</span></td>' +
+      '<td><span class="badge bb">' + (p ? p.name : b.plan) + '</span></td>' +
+      '<td><span class="badge ' + (b.status==='active'?'bg':b.status==='trial'?'bo':'br') + '">' + b.status + '</span></td>' +
+      '<td><strong>$' + (p ? p.price : 0) + '</strong></td></tr>';
+  }).join('');
+
+  // Recent staff table
+  document.getElementById('d-users-tb').innerHTML = S.users.slice(0,5).map(function(u) {
+    var r = S.roles.find(function(x) { return x.id === u.role; });
+    var b = S.branches.find(function(x) { return x.id === u.branch; });
+    var ini = u.name.split(' ').map(function(n) { return n[0]; }).join('').slice(0,2).toUpperCase();
+    return '<tr>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;">' +
+        '<div class="u-av">' + ini + '</div>' +
+        '<div><div style="font-weight:700;">' + u.name + '</div><div style="font-size:.7rem;color:var(--txt2);">@' + u.uname + '</div></div>' +
+      '</div></td>' +
+      '<td>' + (r ? '<span class="badge bb">' + r.name + '</span>' : '-') + '</td>' +
+      '<td>' + (b ? b.name : '-') + '</td></tr>';
+  }).join('');
+
+  // Subscription alerts
+  var alerts = S.branches.filter(function(b) { return daysLeft(b.renewal) <= 30; }).slice(0,5);
+  document.getElementById('d-sub-alerts').innerHTML = alerts.length
+    ? alerts.map(function(b) {
+        var d = daysLeft(b.renewal);
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bdr);">' +
+          '<div><div style="font-size:.84rem;font-weight:700;">' + b.name + '</div><div style="font-size:.7rem;color:var(--txt2);">' + b.renewal + '</div></div>' +
+          '<span class="badge ' + (d<0?'br':d<=7?'br':'bo') + '">' + (d<0?'Expired':d+' days') + '</span></div>';
+      }).join('')
+    : '<div class="empty" style="padding:20px;"><div style="font-size:1.5rem;">✅</div><div style="font-size:.84rem;margin-top:6px;">No alerts — all clear!</div></div>';
+
+  // Plan distribution
+  var planCounts = {};
+  S.branches.forEach(function(b) { planCounts[b.plan] = (planCounts[b.plan] || 0) + 1; });
+  document.getElementById('d-plan-dist').innerHTML = Object.entries(PLANS).map(function(entry) {
+    var key = entry[0], p = entry[1], cnt = planCounts[key] || 0;
+    var pct = S.branches.length > 0 ? Math.round(cnt / S.branches.length * 100) : 0;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr);">' +
+      '<div style="flex:1;font-size:.84rem;font-weight:600;">' + p.name + '</div>' +
+      '<div style="width:80px;height:5px;background:var(--bdr);border-radius:3px;overflow:hidden;">' +
+        '<div style="height:100%;background:var(--p);width:' + pct + '%;border-radius:3px;"></div></div>' +
+      '<span style="font-size:.78rem;font-weight:700;min-width:70px;text-align:right;">' + cnt + ' · $' + (cnt * p.price) + '</span></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SALONS
+// ═══════════════════════════════════════════════════════════════
+function renderSalons() {
+  var html = S.salons.map(function(sl) {
+    var bc  = S.branches.filter(function(b) { return b.salon === sl.id; }).length;
+    var uc  = S.users.filter(function(u) { var b = S.branches.find(function(x) { return x.id === u.branch; }); return b && b.salon === sl.id; }).length;
+    var mrr = S.branches.filter(function(b) { return b.salon === sl.id && b.status === 'active'; })
+                .reduce(function(a, b) { return a + (PLANS[b.plan] ? PLANS[b.plan].price : 0); }, 0);
+    return '<div class="salon-card">' +
+      '<div class="sc-hdr ' + sl.color + '">' +
+        '<div class="sc-logo">' + sl.icon + '</div>' +
+        '<div class="sc-nm">' + sl.name + '</div>' +
+        '<div class="sc-cd">' + sl.code + (sl.desc ? ' · ' + sl.desc : '') + '</div>' +
+      '</div>' +
+      '<div class="sc-body">' +
+        '<div class="sc-stats">' +
+          '<div class="sc-stat"><div class="sc-sv">' + bc + '</div><div class="sc-sl">Branches</div></div>' +
+          '<div class="sc-stat"><div class="sc-sv">' + uc + '</div><div class="sc-sl">Staff</div></div>' +
+          '<div class="sc-stat"><div class="sc-sv">$' + mrr + '</div><div class="sc-sl">MRR</div></div>' +
+        '</div>' +
+        '<div class="sc-acts">' +
+          '<button class="btn btn-sm btn-o" style="flex:1;" onclick="filterBranchBySalon(\'' + sl.id + '\')">View Branches</button>' +
+          '<button class="btn btn-sm btn-o" onclick="editSalon(\'' + sl.id + '\')">Edit</button>' +
+          '<button class="btn btn-sm btn-d" onclick="deleteSalon(\'' + sl.id + '\')">Del</button>' +
+        '</div>' +
+      '</div></div>';
+  }).join('');
+  html += '<div class="salon-card" style="border:2px dashed var(--bdr);min-height:180px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="openNewSalon()">' +
+    '<div style="text-align:center;color:var(--txt2);"><div style="font-size:2rem;margin-bottom:6px;">+</div><div style="font-size:.9rem;font-weight:700;">Add New Salon</div></div></div>';
+  document.getElementById('salon-grid').innerHTML = html;
+}
+
+function filterBranchBySalon(salonId) {
+  showPage('branches');
+  var sf = document.getElementById('branch-sf');
+  if (sf) { sf.value = salonId; }
+  renderBranches();
+}
+
+function openNewSalon() {
+  document.getElementById('sl-eid').value = '';
+  document.getElementById('m-salon-t').textContent = 'Create New Salon';
+  ['sl-name','sl-code','sl-desc','sl-contact'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('sl-icon').value  = '✂️';
+  document.getElementById('sl-color').value = 'purple';
+  openModal('m-salon');
+}
+function editSalon(id) {
+  var sl = S.salons.find(function(x) { return x.id === id; });
+  if (!sl) return;
+  document.getElementById('sl-eid').value   = id;
+  document.getElementById('m-salon-t').textContent = 'Edit Salon';
+  document.getElementById('sl-name').value  = sl.name;
+  document.getElementById('sl-code').value  = sl.code;
+  document.getElementById('sl-desc').value  = sl.desc  || '';
+  document.getElementById('sl-contact').value = sl.contact || '';
+  document.getElementById('sl-icon').value  = sl.icon  || '✂️';
+  document.getElementById('sl-color').value = sl.color || 'purple';
+  openModal('m-salon');
+}
+function saveSalon() {
+  var name = document.getElementById('sl-name').value.trim();
+  var code = document.getElementById('sl-code').value.trim();
+  if (!name || !code) { toast('Name and code required', 'err'); return; }
+  var eid  = document.getElementById('sl-eid').value;
+  var btn = document.querySelector('#m-salon .btn-p, #m-salon .btn-s');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  var color = document.getElementById('sl-color').value;
+  var payload = {
+    name: name,
+    icon: document.getElementById('sl-icon').value || '✂️',
+    color: color === 'purple' ? '#7c3aed' : '#e11d48',
+    owner_email: document.getElementById('sl-contact').value || null,
+    owner_name: document.getElementById('sl-desc').value || null
+  };
+  var req = eid
+    ? sbPatch('salon_groups', 'id=eq.' + eid, payload).then(function(){ return null; })
+    : sbPost('salon_groups', payload);
+  req.then(function() {
+    closeModal('m-salon');
+    toast(eid ? 'Salon updated' : 'Salon created', 'ok');
+    return loadFromSupabase();
+  }).then(function() {
+    renderSalons(); buildNav();
+  }).catch(function(err) {
+    toast('Save failed: ' + err.message, 'err');
+  }).finally(function() {
+    if (btn) { btn.disabled = false; btn.textContent = eid ? 'Save Changes' : 'Create Salon'; }
+  });
+}
+function deleteSalon(id) {
+  if (!confirm('Delete this salon and all its branches? This also deletes their login users and cannot be undone.')) return;
+  sbDel('salon_groups', 'id=eq.' + id)
+    .then(function() {
+      toast('Salon deleted', 'inf');
+      return loadFromSupabase();
+    })
+    .then(function() { renderSalons(); buildNav(); })
+    .catch(function(err) { toast('Delete failed: ' + err.message, 'err'); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRANCHES
+// ═══════════════════════════════════════════════════════════════
+function renderBranches() {
+  var sf  = document.getElementById('branch-sf');
+  var pf  = document.getElementById('branch-pf');
+  var stf = document.getElementById('branch-stf');
+  var cs  = sf ? sf.value : '', cp = pf ? pf.value : '';
+  if (sf) sf.innerHTML = '<option value="">All Salons</option>' + S.salons.map(function(s) { return '<option value="' + s.id + '"' + (cs === s.id ? ' selected' : '') + '>' + s.name + '</option>'; }).join('');
+  var search = document.getElementById('branch-srch') ? document.getElementById('branch-srch').value.toLowerCase() : '';
+  var bsf = sf ? sf.value : '', bpf = pf ? pf.value : '', bstf = stf ? stf.value : '';
+  var list = S.branches.filter(function(b) {
+    if (search && b.name.toLowerCase().indexOf(search) < 0 && b.code.toLowerCase().indexOf(search) < 0) return false;
+    if (bsf  && b.salon  !== bsf)  return false;
+    if (bpf  && b.plan   !== bpf)  return false;
+    if (bstf && b.status !== bstf) return false;
+    return true;
+  });
+  if (!list.length) {
+    document.getElementById('branches-list').innerHTML = '<div class="empty"><div class="empty-ic">📍</div><div class="empty-t">No branches found</div></div>';
+    return;
+  }
+  document.getElementById('branches-list').innerHTML = list.map(function(b) {
+    var sl  = S.salons.find(function(x) { return x.id === b.salon; });
+    var d   = daysLeft(b.renewal);
+    var ec  = d < 0 ? 'dead' : d <= 30 ? 'warn' : 'ok';
+    var et  = d < 0 ? 'Expired ' + Math.abs(d) + 'd ago' : d <= 30 ? 'Expires in ' + d + ' days' : d + ' days left';
+    var uc  = S.users.filter(function(u) { return u.branch === b.id; }).length;
+    var pct = Math.max(0, Math.min(100, d / 365 * 100));
+    var p   = PLANS[b.plan];
+    return '<div class="branch-card">' +
+      '<div class="bi">' + (sl ? sl.icon : '✂️') + '</div>' +
+      '<div class="b-info">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '<div class="b-nm">' + b.name + '</div>' +
+          '<span class="badge bb" style="font-size:.62rem;">' + (p ? p.name : b.plan) + '</span>' +
+          '<span class="badge ' + (b.status==='active'?'bg':b.status==='trial'?'bo':'br') + '" style="font-size:.62rem;">' + b.status + '</span>' +
+        '</div>' +
+        '<div class="b-mt">' + b.code + ' · ' + (sl ? sl.name : '-') + ' · ' + uc + ' staff · ' + b.currency + '</div>' +
+        '<div class="b-sub-info ' + ec + '">' + et + '</div>' +
+        '<div class="subbar"><div class="sbfill ' + ec + '" style="width:' + pct + '%;"></div></div>' +
+      '</div>' +
+      '<div class="b-acts">' +
+        '<div style="display:flex;gap:6px;">' +
+          '<button class="btn btn-sm btn-o" onclick="editBranch(\'' + b.id + '\')">Edit</button>' +
+          '<button class="btn btn-sm btn-s" onclick="openRenew(\'' + b.id + '\')">Renew</button>' +
+          '<button class="btn btn-sm btn-d" onclick="deleteBranch(\'' + b.id + '\')">Del</button>' +
+        '</div>' +
+        '<button class="btn btn-sm" style="background:var(--pd);color:#fff;font-size:.72rem;" onclick="launchPOS(\'' + b.id + '\')">&#128179; Launch POS</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function openNewBranch() {
+  document.getElementById('br-eid').value = '';
+  document.getElementById('m-branch-t').textContent = 'Add New Branch';
+  ['br-name','br-code','br-addr','br-phone','br-user','br-pass'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('br-login-section').style.display = 'block';
+  document.getElementById('br-salon').innerHTML    = S.salons.map(function(s) { return '<option value="' + s.id + '">' + s.name + '</option>'; }).join('');
+  document.getElementById('br-plan').value         = 'growth';
+  document.getElementById('br-currency').value     = 'QAR';
+  var t = new Date().toISOString().split('T')[0];
+  var e = new Date(); e.setFullYear(e.getFullYear() + 1);
+  document.getElementById('br-start').value   = t;
+  document.getElementById('br-renewal').value = e.toISOString().split('T')[0];
+  ['bf-pos','bf-appts','bf-inv','bf-staff','bf-rep','bf-crm'].forEach(function(id) { document.getElementById(id).checked = true; });
+  ['bf-exp','bf-sms','bf-api'].forEach(function(id) { document.getElementById(id).checked = false; });
+  openModal('m-branch');
+}
+function editBranch(id) {
+  var b = S.branches.find(function(x) { return x.id === id; });
+  if (!b) return;
+  document.getElementById('br-eid').value       = id;
+  document.getElementById('m-branch-t').textContent = 'Edit Branch';
+  document.getElementById('br-salon').innerHTML = S.salons.map(function(s) { return '<option value="' + s.id + '"' + (s.id === b.salon ? ' selected' : '') + '>' + s.name + '</option>'; }).join('');
+  document.getElementById('br-name').value      = b.name;
+  document.getElementById('br-code').value      = b.code     || '';
+  document.getElementById('br-addr').value      = b.addr     || '';
+  document.getElementById('br-phone').value     = b.phone    || '';
+  document.getElementById('br-plan').value      = b.plan     || 'growth';
+  document.getElementById('br-currency').value  = b.currency || 'QAR';
+  document.getElementById('br-start').value     = b.start    || '';
+  document.getElementById('br-renewal').value   = b.renewal  || '';
+  document.getElementById('br-login-section').style.display = 'none';
+  var ft = b.features || {};
+  document.getElementById('bf-pos').checked   = !!ft.pos;
+  document.getElementById('bf-appts').checked = !!ft.appts;
+  document.getElementById('bf-inv').checked   = !!ft.inv;
+  document.getElementById('bf-staff').checked = !!ft.staff;
+  document.getElementById('bf-rep').checked   = !!ft.rep;
+  document.getElementById('bf-exp').checked   = !!ft.exp;
+  document.getElementById('bf-crm').checked   = !!ft.crm;
+  document.getElementById('bf-sms').checked   = !!ft.sms;
+  document.getElementById('bf-api').checked   = !!ft.api;
+  openModal('m-branch');
+}
+function genStoreId(name) {
+  var base = (name || 'store').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 10) || 'store';
+  return base + Date.now().toString(36).slice(-4);
+}
+function saveBranch() {
+  var name  = document.getElementById('br-name').value.trim();
+  var salon = document.getElementById('br-salon').value;
+  if (!name || !salon) { toast('Name and salon required', 'err'); return; }
+  var eid  = document.getElementById('br-eid').value;
+  var btn = document.querySelector('#m-branch .btn-p, #m-branch .btn-s');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  var features = { pos:document.getElementById('bf-pos').checked, appts:document.getElementById('bf-appts').checked, inv:document.getElementById('bf-inv').checked, staff:document.getElementById('bf-staff').checked, rep:document.getElementById('bf-rep').checked, exp:document.getElementById('bf-exp').checked, crm:document.getElementById('bf-crm').checked, sms:document.getElementById('bf-sms').checked, api:document.getElementById('bf-api').checked };
+  var addr = document.getElementById('br-addr').value;
+  var phone = document.getElementById('br-phone').value;
+  var start = document.getElementById('br-start').value;
+  var code = document.getElementById('br-code').value;
+  var payload = {
+    salon_group_id: parseInt(salon, 10),
+    name: name,
+    branch_code: code || null,
+    plan: document.getElementById('br-plan').value,
+    currency: document.getElementById('br-currency').value,
+    renewal_date: document.getElementById('br-renewal').value || null,
+    status: 'active',
+    settings: { addr:addr, phone:phone, start:start, features:features }
+  };
+  function doSaveBranch(p, isCreate) {
+    return isCreate ? sbPost('branches', p) : sbPatch('branches', 'id=eq.' + eid, p).then(function(){ return null; });
+  }
+  function retryWithoutBranchCode(p, isCreate, err) {
+    if (/branch_code/i.test(err.message)) {
+      var p2 = {}; for (var k in p) { if (k !== 'branch_code') p2[k] = p[k]; }
+      return doSaveBranch(p2, isCreate);
+    }
+    throw err;
+  }
+  var req;
+  if (eid) {
+    req = doSaveBranch(payload, false).catch(function(err){ return retryWithoutBranchCode(payload, false, err); });
+  } else {
+    payload.store_id = genStoreId(name);
+    req = doSaveBranch(payload, true).catch(function(err){ return retryWithoutBranchCode(payload, true, err); }).then(function(branchRow) {
+      // Create the initial admin login for this branch (Step-2 login on pos.html)
+      var u = document.getElementById('br-user').value.trim();
+      var p = document.getElementById('br-pass').value;
+      if (u && p) {
+        return sbPost('branch_users', {
+          branch_id: branchRow.id, name: 'Branch Admin', username: u, password: p, role: 'admin', active: true
+        }).then(function(){ return branchRow; });
+      }
+      return branchRow;
+    });
+  }
+  req.then(function() {
+    closeModal('m-branch');
+    toast(eid ? 'Branch updated' : 'Branch created', 'ok');
+    return loadFromSupabase();
+  }).then(function() {
+    renderBranches(); buildNav();
+  }).catch(function(err) {
+    toast('Save failed: ' + err.message, 'err');
+  }).finally(function() {
+    if (btn) { btn.disabled = false; btn.textContent = eid ? 'Save Changes' : 'Create Branch'; }
+  });
+}
+function deleteBranch(id) {
+  if (!confirm('Delete this branch? This also deletes its login users and cannot be undone.')) return;
+  sbDel('branches', 'id=eq.' + id)
+    .then(function() {
+      toast('Branch deleted', 'inf');
+      return loadFromSupabase();
+    })
+    .then(function() { renderBranches(); buildNav(); })
+    .catch(function(err) { toast('Delete failed: ' + err.message, 'err'); });
+}
+function launchPOS(branchId) {
+  var b = S.branches.find(function(x) { return x.id === branchId; });
+  if (!b) return;
+  if (b.renewal && daysLeft(b.renewal) < 0) { toast('Subscription expired. Renew first.', 'err'); return; }
+  var posUrl = 'https://salonaap.bizpoz.co/pos.html?store=' + encodeURIComponent(b.storeId || b.code);
+  window.open(posUrl, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUBSCRIPTION MANAGER
+// ═══════════════════════════════════════════════════════════════
+function renderSubscription() {
+  var a = 0, w = 0, d = 0;
+  var rows = S.branches.map(function(b) {
+    var sl  = S.salons.find(function(x) { return x.id === b.salon; });
+    var dl  = daysLeft(b.renewal);
+    var badge, clr;
+    if (dl < 0)       { d++; badge = '<span class="badge br">Expired</span>';  clr = 'var(--red)'; }
+    else if (dl <= 30){ w++; badge = '<span class="badge bo">Expiring</span>'; clr = 'var(--a)'; }
+    else              { a++; badge = '<span class="badge bg">Active</span>';   clr = 'var(--green)'; }
+    return '<tr style="' + (dl < 0 ? 'background:#fff5f5;' : '') + '">' +
+      '<td><strong>' + b.name + '</strong><br><span style="font-size:.7rem;color:var(--txt2);">' + b.code + '</span></td>' +
+      '<td>' + (sl ? sl.name : '-') + '</td>' +
+      '<td><span class="badge bb">' + (PLANS[b.plan] ? PLANS[b.plan].name : b.plan) + '</span></td>' +
+      '<td>' + b.start + '</td><td>' + b.renewal + '</td>' +
+      '<td><span style="font-weight:700;color:' + clr + ';">' + (dl < 0 ? dl + ' (exp)' : dl + ' days') + '</span></td>' +
+      '<td>' + badge + '</td>' +
+      '<td><button class="btn btn-sm btn-s" onclick="openRenew(\'' + b.id + '\')">Renew</button></td></tr>';
+  }).join('');
+  document.getElementById('sub-a').textContent = a;
+  document.getElementById('sub-w').textContent = w;
+  document.getElementById('sub-d').textContent = d;
+  document.getElementById('sub-tb').innerHTML  = rows;
+}
+
+function openRenew(id) {
+  var b = S.branches.find(function(x) { return x.id === id; });
+  if (!b) return;
+  document.getElementById('renew-sid').value   = id;
+  document.getElementById('renew-nm').textContent = b.name;
+  document.getElementById('renew-plan').value  = b.plan || 'growth';
+  document.getElementById('renew-nt').value    = '';
+  var e = new Date(); e.setFullYear(e.getFullYear() + 1);
+  document.getElementById('renew-dt').value    = e.toISOString().split('T')[0];
+  openModal('m-renew');
+}
+function doRenew() {
+  var id   = document.getElementById('renew-sid').value;
+  var date = document.getElementById('renew-dt').value;
+  var plan = document.getElementById('renew-plan').value;
+  if (!date) { toast('Select a renewal date', 'err'); return; }
+  var btn = document.querySelector('#m-renew .btn-p, #m-renew .btn-s');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  sbPatch('branches', 'id=eq.' + id, { renewal_date: date, plan: plan, status: 'active' })
+    .then(function() {
+      closeModal('m-renew');
+      toast('Subscription renewed!', 'ok');
+      return loadFromSupabase();
+    })
+    .then(function() { renderSubscription(); renderBranches(); })
+    .catch(function(err) { toast('Renew failed: ' + err.message, 'err'); })
+    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = 'Renew Subscription'; } });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROLES & PERMISSIONS
+// ═══════════════════════════════════════════════════════════════
+function renderRoles() {
+  document.getElementById('roles-list').innerHTML = S.roles.map(function(r) {
+    var pc = r.perms.indexOf('all') >= 0 ? 'Full Access' : r.perms.length + ' perms';
+    return '<div class="ri' + (r.id === S.activeRole ? ' sel' : '') + '" onclick="selectRole(\'' + r.id + '\')">' +
+      '<div class="ri-ic">' + r.icon + '</div>' +
+      '<div style="flex:1;"><div class="ri-nm">' + r.name + '</div><div class="ri-ds">' + r.desc + '</div></div>' +
+      '<span class="ri-pc">' + pc + '</span></div>';
+  }).join('');
+  if (S.activeRole) selectRole(S.activeRole);
+}
+
+function selectRole(id) {
+  S.activeRole = id;
+  var r = S.roles.find(function(x) { return x.id === id; });
+  if (!r) return;
+  document.querySelectorAll('.ri').forEach(function(el) { el.classList.toggle('sel', el.getAttribute('onclick').indexOf("'" + id + "'") >= 0); });
+  var uc = S.users.filter(function(u) { return u.role === id; }).length;
+  var permsHtml;
+  if (r.perms.indexOf('all') >= 0) {
+    permsHtml = '<div style="background:#dcfce7;color:#15803d;padding:12px 16px;border-radius:8px;font-size:.84rem;font-weight:700;">✓ Full Access — All permissions granted</div>';
+  } else {
+    permsHtml = Object.entries(PERMS).map(function(entry) {
+      var sec = entry[0], perms = entry[1];
+      return '<div class="perm-sec"><div class="perm-sec-t">' + sec + '</div><div class="perm-grid">' +
+        perms.map(function(p) {
+          var chk = r.perms.indexOf(p) >= 0 ? 'on' : '';
+          return '<div class="perm-it"><div class="pcb ' + chk + '"></div><span class="plb">' + fmtPerm(p) + '</span></div>';
+        }).join('') + '</div></div>';
+    }).join('');
+  }
+  document.getElementById('role-detail').innerHTML =
+    '<div class="card"><div class="ch">' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:1.4rem;">' + r.icon + '</span>' +
+        '<div><div class="ct">' + r.name + '</div><div style="font-size:.75rem;color:var(--txt2);">' + r.desc + ' · ' + uc + ' member(s)</div></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="btn btn-sm btn-o" onclick="editRole(\'' + id + '\')">Edit</button>' +
+        (id !== 'r1' ? '<button class="btn btn-sm btn-d" onclick="deleteRole(\'' + id + '\')">Delete</button>' : '') +
+      '</div>' +
+    '</div><div class="cb">' + permsHtml + '</div></div>';
+}
+
+function fmtPerm(p) { return p.split('_').map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' '); }
+
+function openNewRole() {
+  document.getElementById('r-eid').value = '';
+  document.getElementById('m-role-t').textContent = 'Create Role';
+  document.getElementById('r-name').value = '';
+  document.getElementById('r-desc').value = '';
+  renderRolePerms([]);
+  openModal('m-role');
+}
+function editRole(id) {
+  var r = S.roles.find(function(x) { return x.id === id; });
+  if (!r) return;
+  document.getElementById('r-eid').value           = id;
+  document.getElementById('m-role-t').textContent  = 'Edit Role';
+  document.getElementById('r-name').value          = r.name;
+  document.getElementById('r-desc').value          = r.desc;
+  renderRolePerms(r.perms);
+  openModal('m-role');
+}
+function renderRolePerms(sel) {
+  document.getElementById('r-perms').innerHTML = Object.entries(PERMS).map(function(entry) {
+    var sec = entry[0], perms = entry[1];
+    var allOn = perms.every(function(p) { return sel.indexOf(p) >= 0 || sel.indexOf('all') >= 0; });
+    return '<div class="perm-sec">' +
+      '<div class="perm-sec-t"><label class="sw-w" style="margin-right:8px;"><input type="checkbox" class="sec-tog" data-sec="' + sec + '"' + (allOn ? ' checked' : '') + '><span class="sw-sl"></span></label>' + sec + '</div>' +
+      '<div class="perm-grid">' +
+        perms.map(function(p) {
+          var on = sel.indexOf(p) >= 0 || sel.indexOf('all') >= 0 ? 'on' : '';
+          return '<div class="perm-it" onclick="this.querySelector(\'.pcb\').classList.toggle(\'on\')">' +
+            '<div class="pcb ' + on + '" data-perm="' + p + '"></div>' +
+            '<span class="plb">' + fmtPerm(p) + '</span></div>';
+        }).join('') + '</div></div>';
+  }).join('');
+  document.querySelectorAll('.sec-tog').forEach(function(tog) {
+    tog.addEventListener('change', function() {
+      var on = this.checked;
+      this.closest('.perm-sec').querySelectorAll('.pcb').forEach(function(cb) { cb.classList.toggle('on', on); });
+    });
+  });
+}
+function saveRole() {
+  var name = document.getElementById('r-name').value.trim();
+  if (!name) { toast('Role name required', 'err'); return; }
+  var perms = Array.from(document.querySelectorAll('#r-perms .pcb.on')).map(function(el) { return el.dataset.perm; }).filter(Boolean);
+  var eid   = document.getElementById('r-eid').value;
+  var data  = { name:name, desc:document.getElementById('r-desc').value, icon:'🛡️', perms:perms };
+  if (eid) {
+    var i = S.roles.findIndex(function(r) { return r.id === eid; });
+    Object.assign(S.roles[i], data);
+    toast('Role updated', 'ok');
+  } else {
+    data.id = 'r' + Date.now();
+    S.roles.push(data);
+    toast('Role created', 'ok');
+  }
+  saveData(); closeModal('m-role'); renderRoles();
+}
+function deleteRole(id) {
+  if (S.users.some(function(u) { return u.role === id; })) { toast('Cannot delete: staff assigned to this role', 'err'); return; }
+  if (!confirm('Delete this role?')) return;
+  S.roles = S.roles.filter(function(r) { return r.id !== id; });
+  saveData(); S.activeRole = null; toast('Role deleted', 'inf'); renderRoles();
+  document.getElementById('role-detail').innerHTML = '<div class="empty"><div class="empty-ic">🛡️</div><div class="empty-t">Select a Role</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAFF USERS
+// ═══════════════════════════════════════════════════════════════
+function renderUsers() {
+  var sf = document.getElementById('user-sf');
+  var rf = document.getElementById('user-rf');
+  var cs = sf.value, cr = rf.value;
+  sf.innerHTML = '<option value="">All Branches</option>' + S.branches.map(function(b) { return '<option value="' + b.id + '"' + (cs === b.id ? ' selected' : '') + '>' + b.name + '</option>'; }).join('');
+  rf.innerHTML = '<option value="">All Roles</option>'    + S.roles.map(function(r)    { return '<option value="' + r.id + '"' + (cr === r.id ? ' selected' : '') + '>' + r.name + '</option>'; }).join('');
+  var search = document.getElementById('user-srch').value.toLowerCase();
+  var stF = sf.value, rlF = rf.value;
+  var list = S.users.filter(function(u) {
+    if (search && u.name.toLowerCase().indexOf(search) < 0 && u.uname.toLowerCase().indexOf(search) < 0) return false;
+    if (stF && u.branch !== stF) return false;
+    if (rlF && u.role   !== rlF) return false;
+    return true;
+  });
+  document.getElementById('users-tb').innerHTML = list.length
+    ? list.map(function(u) {
+        var r   = S.roles.find(function(x)    { return x.id === u.role; });
+        var b   = S.branches.find(function(x) { return x.id === u.branch; });
+        var ini = u.name.split(' ').map(function(n) { return n[0]; }).join('').slice(0,2).toUpperCase();
+        return '<tr>' +
+          '<td><div style="display:flex;align-items:center;gap:10px;"><div class="u-av">' + ini + '</div>' +
+            '<div><div style="font-weight:700;">' + u.name + '</div><div style="font-size:.7rem;color:var(--txt2);">@' + u.uname + '</div></div></div></td>' +
+          '<td>' + u.email + '</td>' +
+          '<td>' + (r ? '<span class="badge bb">' + r.name + '</span>' : '-') + '</td>' +
+          '<td>' + (b ? b.name : '-') + '</td>' +
+          '<td><span class="badge ' + (u.status === 'active' ? 'bg' : 'br') + '">' + u.status + '</span></td>' +
+          '<td><div style="display:flex;gap:6px;">' +
+            '<button class="btn btn-sm btn-o" onclick="editUser(\'' + u.id + '\')">Edit</button>' +
+            '<button class="btn btn-sm btn-d" onclick="deleteUser(\'' + u.id + '\')">Del</button>' +
+          '</div></td></tr>';
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--txt2);">No staff found</td></tr>';
+}
+function openNewUser() {
+  document.getElementById('u-eid').value = '';
+  document.getElementById('m-user-t').textContent = 'Add Staff Member';
+  ['u-name','u-uname','u-email','u-pass','u-phone'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('u-comm').value = '12';
+  document.getElementById('u-branch').innerHTML = '<option value="">Select Branch</option>' + S.branches.map(function(b) { return '<option value="' + b.id + '">' + b.name + '</option>'; }).join('');
+  document.getElementById('u-role').innerHTML   = '<option value="">Select Role</option>'   + S.roles.map(function(r)    { return '<option value="' + r.id + '">' + r.name + '</option>'; }).join('');
+  openModal('m-user');
+}
+function editUser(id) {
+  var u = S.users.find(function(x) { return x.id === id; });
+  if (!u) return;
+  document.getElementById('u-eid').value   = id;
+  document.getElementById('m-user-t').textContent = 'Edit Staff Member';
+  document.getElementById('u-name').value  = u.name;
+  document.getElementById('u-uname').value = u.uname;
+  document.getElementById('u-email').value = u.email;
+  document.getElementById('u-phone').value = u.phone || '';
+  document.getElementById('u-pass').value  = '';
+  document.getElementById('u-comm').value  = u.comm || 12;
+  document.getElementById('u-branch').innerHTML = S.branches.map(function(b) { return '<option value="' + b.id + '"' + (b.id === u.branch ? ' selected' : '') + '>' + b.name + '</option>'; }).join('');
+  document.getElementById('u-role').innerHTML   = S.roles.map(function(r)    { return '<option value="' + r.id + '"' + (r.id === u.role   ? ' selected' : '') + '>' + r.name + '</option>'; }).join('');
+  openModal('m-user');
+}
+// Supabase branch_users.role only accepts admin/cashier/staff — map our
+// richer SaaS-Admin roles down to that 3-value column.
+function roleToDbRole(roleId) {
+  if (roleId === 'r1') return 'admin';
+  if (roleId === 'r3') return 'cashier';
+  return 'staff';
+}
+function saveUser() {
+  var name  = document.getElementById('u-name').value.trim();
+  var uname = document.getElementById('u-uname').value.trim();
+  var branch = document.getElementById('u-branch').value;
+  if (!name || !uname) { toast('Name and username required', 'err'); return; }
+  if (!branch) { toast('Select a branch', 'err'); return; }
+  var eid  = document.getElementById('u-eid').value;
+  var btn = document.querySelector('#m-user .btn-p, #m-user .btn-s');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  var payload = {
+    branch_id: parseInt(branch, 10),
+    name: name,
+    username: uname,
+    role: roleToDbRole(document.getElementById('u-role').value),
+    active: true,
+    email: document.getElementById('u-email').value || null,
+    phone: document.getElementById('u-phone').value || null,
+    commission: parseInt(document.getElementById('u-comm').value, 10) || 12
+  };
+  function stripOptionalCols(p) {
+    var basic = { branch_id:p.branch_id, name:p.name, username:p.username, role:p.role, active:p.active };
+    if (p.password) basic.password = p.password;
+    return basic;
+  }
+  function doSaveUser(p) {
+    if (eid) return sbPatch('branch_users', 'id=eq.' + eid, p).then(function(){ return null; });
+    return sbPost('branch_users', p);
+  }
+  var req;
+  if (eid) {
+    var pw = document.getElementById('u-pass').value;
+    if (pw) payload.password = pw;
+    req = doSaveUser(payload);
+  } else {
+    var newPw = document.getElementById('u-pass').value;
+    if (newPw.length < 4) {
+      toast('Password min 4 characters', 'err');
+      if (btn) { btn.disabled = false; btn.textContent = 'Add Staff'; }
+      return;
+    }
+    payload.password = newPw;
+    req = doSaveUser(payload);
+  }
+  req.catch(function(err) {
+    // email/phone/commission columns may not exist yet — retry with just the core fields
+    if (/column|email|phone|commission/i.test(err.message)) {
+      return doSaveUser(stripOptionalCols(payload));
+    }
+    throw err;
+  }).then(function() {
+    closeModal('m-user');
+    toast(eid ? 'Staff updated' : 'Staff added', 'ok');
+    return loadFromSupabase();
+  }).then(function() {
+    renderUsers();
+  }).catch(function(err) {
+    toast('Save failed: ' + err.message, 'err');
+  }).finally(function() {
+    if (btn) { btn.disabled = false; btn.textContent = eid ? 'Save Changes' : 'Add Staff'; }
+  });
+}
+function deleteUser(id) {
+  if (!confirm('Delete this staff member? They will no longer be able to log in to the POS.')) return;
+  sbDel('branch_users', 'id=eq.' + id)
+    .then(function() {
+      toast('Staff deleted', 'inf');
+      return loadFromSupabase();
+    })
+    .then(function() { renderUsers(); })
+    .catch(function(err) { toast('Delete failed: ' + err.message, 'err'); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INVOICE TEMPLATES
+// ═══════════════════════════════════════════════════════════════
+function renderInvoices() {
+  var bf = document.getElementById('inv-branch-f');
+  var cv = bf.value;
+  bf.innerHTML = '<option value="">All Branches</option>' + S.branches.map(function(b) { return '<option value="' + b.id + '"' + (cv === b.id ? ' selected' : '') + '>' + b.name + '</option>'; }).join('');
+  var filter = bf.value;
+  var list   = S.invoices.filter(function(i) { return !filter || i.branch === filter; });
+  if (!list.length) { document.getElementById('invoice-list').innerHTML = '<div class="empty"><div class="empty-ic">🧾</div><div class="empty-t">No templates yet</div></div>'; return; }
+  document.getElementById('invoice-list').innerHTML = list.map(function(inv) {
+    var b = S.branches.find(function(x) { return x.id === inv.branch; });
+    return '<div class="branch-card">' +
+      '<div class="bi">🧾</div>' +
+      '<div class="b-info">' +
+        '<div class="b-nm">' + inv.name + '</div>' +
+        '<div class="b-mt">' + (b ? b.name : '-') + ' · ' + inv.paper + ' · ' + inv.style + ' style</div>' +
+        '<div class="b-sub-info ok">' + inv.biz + (inv.tag ? ' — ' + inv.tag : '') + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<button class="btn btn-sm btn-o" onclick="editInvoice(\'' + inv.id + '\')">Edit</button>' +
+        '<button class="btn btn-sm btn-d" onclick="deleteInvoice(\'' + inv.id + '\')">Del</button>' +
+      '</div></div>';
+  }).join('');
+}
+function openNewInvoice() {
+  document.getElementById('inv-eid').value = '';
+  document.getElementById('m-inv-t').textContent = 'New Invoice Template';
+  ['inv-name','inv-biz','inv-tag','inv-addr1','inv-addr2','inv-phone','inv-tax','inv-footer'].forEach(function(id) { document.getElementById(id).value = ''; });
+  document.getElementById('inv-branch').innerHTML = S.branches.map(function(b) { return '<option value="' + b.id + '">' + b.name + '</option>'; }).join('');
+  document.getElementById('inv-paper').value      = '80mm';
+  document.getElementById('inv-style').value      = 'bold';
+  document.getElementById('inv-show-tax').checked = false;
+  document.getElementById('inv-show-pts').checked = true;
+  updateInvPreview();
+  openModal('m-invoice');
+}
+function editInvoice(id) {
+  var inv = S.invoices.find(function(x) { return x.id === id; });
+  if (!inv) return;
+  document.getElementById('inv-eid').value       = id;
+  document.getElementById('m-inv-t').textContent = 'Edit Invoice Template';
+  document.getElementById('inv-name').value   = inv.name;
+  document.getElementById('inv-biz').value    = inv.biz   || '';
+  document.getElementById('inv-tag').value    = inv.tag   || '';
+  document.getElementById('inv-addr1').value  = inv.addr1 || '';
+  document.getElementById('inv-addr2').value  = inv.addr2 || '';
+  document.getElementById('inv-phone').value  = inv.phone || '';
+  document.getElementById('inv-tax').value    = inv.tax   || '';
+  document.getElementById('inv-footer').value = inv.footer || '';
+  document.getElementById('inv-branch').innerHTML = S.branches.map(function(b) { return '<option value="' + b.id + '"' + (b.id === inv.branch ? ' selected' : '') + '>' + b.name + '</option>'; }).join('');
+  document.getElementById('inv-paper').value      = inv.paper || '80mm';
+  document.getElementById('inv-style').value      = inv.style || 'simple';
+  document.getElementById('inv-show-tax').checked = !!inv.showTax;
+  document.getElementById('inv-show-pts').checked = !!inv.showPts;
+  updateInvPreview();
+  openModal('m-invoice');
+}
+function updateInvPreview() {
+  var biz     = document.getElementById('inv-biz').value    || 'Your Salon';
+  var tag     = document.getElementById('inv-tag').value;
+  var addr1   = document.getElementById('inv-addr1').value;
+  var addr2   = document.getElementById('inv-addr2').value;
+  var phone   = document.getElementById('inv-phone').value;
+  var tax     = document.getElementById('inv-tax').value;
+  var footer  = document.getElementById('inv-footer').value;
+  var showTax = document.getElementById('inv-show-tax').checked;
+  var showPts = document.getElementById('inv-show-pts').checked;
+  var sep = '━━━━━━━━━━━━━━━━━━━━━━━';
+  var lines = [sep, biz];
+  if (tag)   lines.push(tag);
+  if (addr1) lines.push(addr1);
+  if (addr2) lines.push(addr2);
+  if (phone) lines.push('Tel: ' + phone);
+  if (tax)   lines.push(tax);
+  lines.push(sep, 'Date: 01 May 2026  #0087', 'Staff: Aisha Rahman', sep);
+  lines.push('Haircut               QAR 120');
+  lines.push('Gel Nails             QAR 200');
+  lines.push('Blowdry               QAR  80');
+  lines.push(sep);
+  lines.push('Subtotal:             QAR 400');
+  if (showTax) lines.push('Tax (5%):             QAR  20');
+  lines.push('TOTAL:                QAR 400');
+  lines.push('Payment: Cash');
+  if (showPts) lines.push('Loyalty points: +40 ⭐');
+  lines.push(sep);
+  if (footer) lines.push(footer);
+  document.getElementById('inv-preview').innerHTML = lines.join('<br>');
+}
+function saveInvoice() {
+  var name   = document.getElementById('inv-name').value.trim();
+  var branch = document.getElementById('inv-branch').value;
+  if (!name || !branch) { toast('Name and branch required', 'err'); return; }
+  var eid  = document.getElementById('inv-eid').value;
+  var data = { name:name, branch:branch, biz:document.getElementById('inv-biz').value, tag:document.getElementById('inv-tag').value, addr1:document.getElementById('inv-addr1').value, addr2:document.getElementById('inv-addr2').value, phone:document.getElementById('inv-phone').value, tax:document.getElementById('inv-tax').value, footer:document.getElementById('inv-footer').value, paper:document.getElementById('inv-paper').value, style:document.getElementById('inv-style').value, showTax:document.getElementById('inv-show-tax').checked, showPts:document.getElementById('inv-show-pts').checked };
+  if (eid) {
+    var i = S.invoices.findIndex(function(x) { return x.id === eid; });
+    Object.assign(S.invoices[i], data);
+    toast('Template updated', 'ok');
+  } else {
+    data.id = 'inv' + Date.now();
+    S.invoices.push(data);
+    toast('Template created', 'ok');
+  }
+  saveData(); closeModal('m-invoice'); renderInvoices();
+}
+function deleteInvoice(id) {
+  if (!confirm('Delete this template?')) return;
+  S.invoices = S.invoices.filter(function(x) { return x.id !== id; });
+  saveData(); toast('Template deleted', 'inf'); renderInvoices();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BILLING
+// ═══════════════════════════════════════════════════════════════
+function renderBilling() {
+  document.getElementById('plan-cards').innerHTML = Object.entries(PLANS).map(function(entry) {
+    var key = entry[0], p = entry[1];
+    var cnt  = S.branches.filter(function(b) { return b.plan === key && b.status === 'active'; }).length;
+    var pop  = key === 'growth' ? '<div class="plan-pop">Most Popular</div>' : '';
+    var feat = '<ul class="plan-feat">';
+    feat += '<li>' + (p.limits.branches === -1 ? 'Unlimited branches' : p.limits.branches + ' branch' + (p.limits.branches > 1 ? 'es' : '')) + '</li>';
+    feat += '<li>' + (p.limits.staff === -1 ? 'Unlimited staff' : p.limits.staff + ' staff members') + '</li>';
+    if (key === 'growth' || key === 'enterprise') { feat += '<li>Inventory & purchases</li><li>Advanced analytics</li><li>Commission tracking</li>'; }
+    if (key === 'enterprise') { feat += '<li>SMS notifications</li><li>API access</li><li>White-label option</li><li>Dedicated support</li>'; }
+    feat += '</ul>';
+    return '<div class="plan-c' + (key === 'growth' ? ' featured-plan' : '') + '" style="position:relative;">' + pop +
+      '<div class="plan-nm">' + p.name + '</div>' +
+      '<div class="plan-pr">$' + p.price + '<span>/mo</span></div>' +
+      feat +
+      '<div style="margin-top:12px;font-size:.78rem;color:var(--txt2);"><strong>' + cnt + '</strong> active branches</div>' +
+    '</div>';
+  }).join('');
+
+  var totalMRR = S.branches.filter(function(b) { return b.status === 'active'; })
+    .reduce(function(a, b) { return a + (PLANS[b.plan] ? PLANS[b.plan].price : 0); }, 0);
+  document.getElementById('billing-rev').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+    [
+      { lb:'MRR',     vl:'$' + totalMRR,               cls:'purple' },
+      { lb:'ARR',     vl:'$' + (totalMRR*12).toLocaleString(), cls:'purple' },
+      { lb:'Active',  vl:S.branches.filter(function(b){ return b.status==='active'; }).length,  cls:'green' },
+      { lb:'Trial',   vl:S.branches.filter(function(b){ return b.status==='trial'; }).length,   cls:'gold' }
+    ].map(function(item) {
+      return '<div class="sc ' + item.cls + '" style="padding:14px;margin-bottom:0;"><div class="sc-lb">' + item.lb + '</div><div class="sc-vl" style="font-size:1.3rem;">' + item.vl + '</div></div>';
+    }).join('') + '</div>';
+
+  document.getElementById('billing-usage').innerHTML =
+    '<div class="usage-row"><div class="usage-label">Total Salons</div>' +
+      '<div class="usage-bar-w"><div class="usage-bar-f" style="width:' + Math.min(100, S.salons.length/10*100) + '%;"></div></div>' +
+      '<div class="usage-ct">' + S.salons.length + ' / 10</div></div>' +
+    '<div class="usage-row"><div class="usage-label">Branches</div>' +
+      '<div class="usage-bar-w"><div class="usage-bar-f" style="width:' + Math.min(100, S.branches.length/20*100) + '%;"></div></div>' +
+      '<div class="usage-ct">' + S.branches.length + ' / 20</div></div>' +
+    '<div class="usage-row"><div class="usage-label">Staff Accounts</div>' +
+      '<div class="usage-bar-w"><div class="usage-bar-f" style="width:' + Math.min(100, S.users.length/50*100) + '%;"></div></div>' +
+      '<div class="usage-ct">' + S.users.length + ' / 50</div></div>' +
+    '<div class="usage-row"><div class="usage-label">Invoice Templates</div>' +
+      '<div class="usage-bar-w"><div class="usage-bar-f" style="width:' + Math.min(100, S.invoices.length/20*100) + '%;"></div></div>' +
+      '<div class="usage-ct">' + S.invoices.length + ' / 20</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST & UTILS
+// ═══════════════════════════════════════════════════════════════
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type || 'inf');
+  var icons = { ok:'✓ ', err:'✗ ', inf:'ℹ ' };
+  el.textContent = (icons[type] || '') + msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 3000);
+}
+
+function resetAll() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+initData();
+</script>
+</body>
+</html>
