@@ -3039,8 +3039,9 @@ function renderDashboard(){
 
   // Staff performance
   const sp = document.getElementById('staff-perf');
+  const _dashStaffRev = staffRevenueMap(sales);
   if(sp) sp.innerHTML = staff.map(function(s){
-    const salesAmt = safeNum(s.sales);
+    const salesAmt = safeNum(_dashStaffRev[s.name] ? _dashStaffRev[s.name].revenue : 0);
     const comm = safeNum(s.commission);
     const c = Math.round(salesAmt * comm / 100);
     return '<div class="staff-row"><div class="staff-ava" style="background:'+(s.color||'#1e40af')+'">'+s.name.split(' ').map(function(n){return n[0];}).join('').slice(0,2)+'</div><div style="flex:1"><div style="font-size:12px;font-weight:700;color:#0f172a">'+s.name+'</div><div style="font-size:10px;color:#64748b">'+s.role+' · '+(s.appts||0)+' appts</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:800;color:#0f172a">'+cur+' '+safeMoney(salesAmt)+'</div><div style="font-size:10px;color:#0d9488">Comm: '+cur+' '+c+'</div></div></div>';
@@ -5412,11 +5413,12 @@ function renderStaff(){
   document.getElementById('staff-lbl').textContent=db.staff.length+' team members';
   const _staffQ=(document.getElementById('staff-search')?.value||'').toLowerCase().trim();
   const _filteredStaff=_staffQ?db.staff.filter(s=>(s.name||'').toLowerCase().includes(_staffQ)||(s.role||'').toLowerCase().includes(_staffQ)):db.staff;
-  document.getElementById('staff-cards').innerHTML=_filteredStaff.length===0?('<div style="text-align:center;padding:40px;color:#94a3b8">No staff match "'+_staffQ+'"</div>'):_filteredStaff.map(s=>{const c=Math.round((s.sales||0)*(s.commission||0)/100);return`<div class="staff-card"><div class="staff-card-hdr"><div class="avatar" style="background:${s.color};width:42px;height:42px;font-size:14px">${s.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="flex:1"><div style="font-size:13px;font-weight:800;color:#0f172a">${s.name}</div><div style="font-size:11px;color:#64748b">${s.role}</div></div><div style="display:flex;gap:4px">
+  const _staffRev=staffRevenueMap(db.sales||[]);
+  document.getElementById('staff-cards').innerHTML=_filteredStaff.length===0?('<div style="text-align:center;padding:40px;color:#94a3b8">No staff match "'+_staffQ+'"</div>'):_filteredStaff.map(s=>{const realSales=(_staffRev[s.name]&&_staffRev[s.name].revenue)||0;const c=Math.round(realSales*(s.commission||0)/100);return`<div class="staff-card"><div class="staff-card-hdr"><div class="avatar" style="background:${s.color};width:42px;height:42px;font-size:14px">${s.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="flex:1"><div style="font-size:13px;font-weight:800;color:#0f172a">${s.name}</div><div style="font-size:11px;color:#64748b">${s.role}</div></div><div style="display:flex;gap:4px">
         <button onclick="showEditStaff(${s.id})" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;font-size:11px;cursor:pointer;font-family:inherit">Edit</button>
         <button onclick="toggleStaffActive(${s.id})" style="padding:4px 8px;border-radius:6px;border:1px solid ${s.active===false?'#16a34a':'#94a3b8'};background:${s.active===false?'#f0fdf4':'white'};font-size:10px;cursor:pointer;font-family:inherit;color:${s.active===false?'#16a34a':'#64748b'}">${s.active===false?'Activate':'Deactivate'}</button>
         <button onclick="deleteStaff(${s.id})" style="padding:4px 8px;border-radius:6px;border:1px solid #fee2e2;background:white;font-size:10px;cursor:pointer;font-family:inherit;color:#1e40af">Delete</button>
-      </div></div><div>${(Array.isArray(s.skills)?s.skills:[]).map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div><div class="staff-stats"><div class="staff-stat"><div class="stat-lbl">Sales</div><div class="stat-val">${dbSettings().currency} ${(s.sales||0).toLocaleString()}</div></div><div class="staff-stat"><div class="stat-lbl">Appts</div><div class="stat-val">${(db.appointments||[]).filter(a=>a.staffId==s.id||a.staff===s.name).length}</div></div><div class="staff-stat"><div class="stat-lbl">Commission</div><div class="stat-val" style="color:#0d9488">${dbSettings().currency} ${c}</div></div><div class="staff-stat"><div class="stat-lbl">Rate</div><div class="stat-val">${s.commission}%</div></div></div></div>`;}).join('');
+      </div></div><div>${(Array.isArray(s.skills)?s.skills:[]).map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div><div class="staff-stats"><div class="staff-stat"><div class="stat-lbl">Sales</div><div class="stat-val">${dbSettings().currency} ${Math.round(realSales).toLocaleString()}</div></div><div class="staff-stat"><div class="stat-lbl">Appts</div><div class="stat-val">${(db.appointments||[]).filter(a=>a.staffId==s.id||a.staff===s.name).length}</div></div><div class="staff-stat"><div class="stat-lbl">Commission</div><div class="stat-val" style="color:#0d9488">${dbSettings().currency} ${c}</div></div><div class="staff-stat"><div class="stat-lbl">Rate</div><div class="stat-val">${s.commission}%</div></div></div></div>`;}).join('');
 }
 function showAddStaff(){
   showModal(`<div class="modal-title">Add Staff Member</div>
@@ -7421,12 +7423,35 @@ function rptTable(headers,rows,colAligns){
   </table></div>`;
 }
 
+// Shared helper: computes real per-staff revenue/count from actual sale items,
+// correctly splitting items shared across multiple staff (saved as "Name A, Name B").
+function staffRevenueMap(sales){
+  const staffMap={};
+  db.staff.forEach(s=>{staffMap[s.name]={name:s.name,role:s.role,color:s.color,commission:s.commission,revenue:0,count:0,services:{}};});
+  sales.forEach(s=>s.items.forEach(it=>{
+    const names=(it.staff||'').split(',').map(n=>n.trim()).filter(Boolean);
+    const list=names.length?names:[''];
+    const share=it.price/list.length;
+    list.forEach(nm=>{
+      if(!staffMap[nm]){
+        const known=db.staff.find(s=>s.name===nm);
+        staffMap[nm]={name:nm||'Unassigned',role:known?known.role:'Staff',color:known?known.color:'#94a3b8',commission:known?known.commission:0,revenue:0,count:0,services:{}};
+      }
+      staffMap[nm].revenue+=share;
+      staffMap[nm].count++;
+      staffMap[nm].services[it.service]=(staffMap[nm].services[it.service]||0)+1;
+    });
+  }));
+  return staffMap;
+}
+
 // OVERVIEW
 function rptOverview(sales,cur){
   const rev=sales.reduce((a,s)=>a+s.total,0);
   const txn=sales.length;
   const avg=txn?Math.round(rev/txn):0;
-  const comm=db.staff.reduce((a,s)=>a+Math.round((s.sales||0)*(s.commission||0)/100),0);
+  const _staffMap=staffRevenueMap(sales);
+  const comm=Object.values(_staffMap).reduce((a,s)=>a+Math.round((s.revenue||0)*(s.commission||0)/100),0);
   const pc={cash:0,card:0,split:0,online:0};
   sales.forEach(s=>pc[s.payment]=(pc[s.payment]||0)+s.total);
   const pClrs={cash:'#16a34a',card:'#0d9488',split:'#7c3aed',online:'#d97706'};
@@ -7457,16 +7482,16 @@ function rptOverview(sales,cur){
   </div>
   <div class="card"><div class="card-title">Staff Performance Overview</div>
     ${rptTable(['Staff','Role','Sales','Commissions','Appts','Avg/Appt'],
-      db.staff.map(s=>{
-      const comm=Math.round((s.sales||0)*(s.commission||0)/100);
+      Object.values(_staffMap).filter(s=>s.revenue>0||db.staff.some(x=>x.name===s.name)).map(s=>{
+      const comm2=Math.round((s.revenue||0)*(s.commission||0)/100);
       // Count real appointments from db
       const apptCount=(db.appointments||[]).filter(a=>a.staff===s.name||a.staffName===s.name).length;
-      const avg2=apptCount?Math.round((s.sales||0)/apptCount):0;
+      const avg2=apptCount?Math.round((s.revenue||0)/apptCount):0;
       return[
         `<div style="display:flex;align-items:center;gap:6px"><div class="staff-ava" style="background:${s.color||'#1e40af'};width:22px;height:22px;font-size:9px">${s.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>${s.name}</div>`,
         `<span class="skill-tag">${s.role}</span>`,
-        `<b>${cur} ${(s.sales||0).toLocaleString()}</b>`,
-        `<span style="color:#0d9488;font-weight:700">${cur} ${comm}</span>`,
+        `<b>${cur} ${Math.round(s.revenue||0).toLocaleString()}</b>`,
+        `<span style="color:#0d9488;font-weight:700">${cur} ${comm2}</span>`,
         apptCount,
         `${cur} ${avg2}`
       ];}),
@@ -7559,23 +7584,7 @@ function rptServices(sales,cur){
 
 // STAFF REPORT
 function rptStaff(sales,cur){
-  const staffMap={};
-  db.staff.forEach(s=>{staffMap[s.name]={name:s.name,role:s.role,color:s.color,commission:s.commission,revenue:0,count:0,services:{}};});
-  sales.forEach(s=>s.items.forEach(it=>{
-    // An item can be shared by multiple staff, saved as "Name A, Name B" — split and credit each real staff member
-    const names=(it.staff||'').split(',').map(n=>n.trim()).filter(Boolean);
-    const list=names.length?names:[''];
-    const share=it.price/list.length;
-    list.forEach(nm=>{
-      if(!staffMap[nm]){
-        const known=db.staff.find(s=>s.name===nm);
-        staffMap[nm]={name:nm||'Unassigned',role:known?known.role:'Staff',color:known?known.color:'#94a3b8',commission:known?known.commission:0,revenue:0,count:0,services:{}};
-      }
-      staffMap[nm].revenue+=share;
-      staffMap[nm].count++;
-      staffMap[nm].services[it.service]=(staffMap[nm].services[it.service]||0)+1;
-    });
-  }));
+  const staffMap=staffRevenueMap(sales);
   const rows=Object.values(staffMap).filter(r=>Number(r.revenue||0)>0).sort((a,b)=>b.revenue-a.revenue);
   const maxRev=rows[0]?.revenue||1;
   return`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
@@ -7745,7 +7754,8 @@ function exportCurrentReport(){
   } else if(currentRptTab==='staff'){
     filename='staff_report.csv';
     csv='Staff,Role,Revenue,Commission %,Commission Due,Services Count\n';
-    csv+=db.staff.map(s=>[s.name,s.role,s.sales,s.commission+'%',Math.round((s.sales||0)*(s.commission||0)/100),s.appts].join(',')).join('\n');
+    const _csvStaffRev=staffRevenueMap(sales);
+    csv+=Object.values(_csvStaffRev).filter(function(s){return s.revenue>0;}).map(function(s){return[s.name,s.role,Math.round(s.revenue),s.commission+'%',Math.round((s.revenue||0)*(s.commission||0)/100),s.count].join(',');}).join('\n');
   } else if(currentRptTab==='inventory'){
     filename='inventory_report.csv';
     csv='Product,Category,Stock,Min Stock,Unit Price,Stock Value,Supplier,Status\n';
@@ -7779,7 +7789,7 @@ function rptPnL(sales,cur){
   const cogs=sales.reduce((a,s)=>a+s.items.reduce((b,it)=>{if(it.type==='product')return b+(it.cost||0)*(it.qty||1);return b+(it.cost||0);},0),0);
   const grossProfit=netRev-cogs;
   const grossMargin=netRev?Math.round(grossProfit/netRev*100):0;
-  const commExpense=db.staff.reduce((a,s)=>a+Math.round((s.sales||0)*(s.commission||0)/100),0);
+  const commExpense=Object.values(staffRevenueMap(sales)).reduce((a,s)=>a+Math.round((s.revenue||0)*(s.commission||0)/100),0);
   const purchaseCost=(db.purchases||[]).filter(p=>p.status==='received').reduce((a,p)=>a+p.grandTotal,0);
   const period=getPeriod();
   const filterDate=(date)=>{if(period==='today')return date===TODAY;if(period==='week'){const d=new Date(TODAY);d.setDate(d.getDate()-6);return date>=fmtDate(d)&&date<=TODAY;}if(period==='month')return date.startsWith(new Date().toISOString().slice(0,7));return true;};
