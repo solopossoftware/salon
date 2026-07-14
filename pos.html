@@ -3440,9 +3440,10 @@ function toggleBill(id){addServiceToBill(id);}
 function toggleStaffForItem(itemIdx,staffName){
   const it=billItems[itemIdx];if(!it)return;
   if(!Array.isArray(it.assignedStaff))it.assignedStaff=[it.assignedStaff||''];
-  const idx=it.assignedStaff.indexOf(staffName);
-  if(idx>=0)it.assignedStaff.splice(idx,1);
-  else it.assignedStaff.push(staffName);
+  // Single-select: picking a staff replaces any previous staff on this line.
+  // Clicking the already-selected staff again clears the selection.
+  const alreadySelected=it.assignedStaff.length===1&&it.assignedStaff[0]===staffName;
+  it.assignedStaff=alreadySelected?[]:[staffName];
   renderBill();
 }
 
