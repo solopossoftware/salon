@@ -1511,7 +1511,8 @@ class SupabaseDB {
       cat: catMap[s.category_id] || 'Other', active: s.active!==false,
       code: s.service_code||('SVC-'+String(s.id).slice(-4).padStart(4,'0')),
       description: s.description||'',
-      imageData: s.image_data||null
+      imageData: s.image_data||null,
+      flexible: !!s.flexible_price
     }));
 
     /* Packages */
@@ -1895,14 +1896,23 @@ class SupabaseDB {
   async saveService(data) {
     const catRow = this._catRows.find(c => c.name === data.cat);
     const _code = data.code || ('SVC-'+String(Date.now()).slice(-4).padStart(4,'0'));
-    const row = await sbInsert('services', {
+    const payload = {
       branch_id:   this.branchId,
       category_id: catRow?.id || null,
       name:  data.name, icon: data.icon||'💅',
       price: data.price, duration: data.duration||60,
-      service_code: _code
-    });
-    return row;
+      service_code: _code, flexible_price: !!data.flexible
+    };
+    try{
+      return await sbInsert('services', payload);
+    }catch(e){
+      // Column not added yet on this project — retry without it
+      if(e.message && /flexible_price/i.test(e.message)){
+        const p2 = Object.assign({}, payload); delete p2.flexible_price;
+        return await sbInsert('services', p2);
+      }
+      throw e;
+    }
   }
 
   async updateService(id, data) {
@@ -3388,7 +3398,7 @@ function addServiceToBill(id){
   if(idx>=0){
     billItems.splice(idx,1); // toggle off
   } else {
-    billItems.push({billId,type:'service',id:s.id,name:s.name,price:s.price,cost:0,assignedStaff:[db.staff[0]?.name||'']});
+    billItems.push({billId,type:'service',id:s.id,name:s.name,price:s.price,cost:0,assignedStaff:[db.staff[0]?.name||''],flexible:!!s.flexible});
   }
   renderPOS();if(billDrawerOpen)syncMobileBill();
 }
@@ -3477,13 +3487,25 @@ function renderBill(){
       </div>
       <div style="display:flex;align-items:flex-start;gap:5px;flex-shrink:0;margin-left:6px">
         <div>
-          <div class="bill-item-price">${cur} ${it.price}</div>
+          ${it.flexible?
+            `<input type="number" value="${it.price}" min="0" step="0.01" oninput="setItemPrice(${i},this.value)"
+              style="width:70px;padding:4px 6px;border:1.5px solid #1e40af;border-radius:6px;font-size:13px;font-weight:700;text-align:right;font-family:inherit"
+              title="Flexible price — editable">`
+            :`<div class="bill-item-price">${cur} ${it.price}</div>`}
           ${discAmt>0?`<div style="font-size:10px;color:#94a3b8;text-decoration:line-through">${cur} ${origPrice}</div>`:''}
         </div>
         <div class="bill-del" onclick="removeItem(${i})">✕</div>
       </div>
     </div>`;
   }).join('');
+  updateBill();
+}
+
+function setItemPrice(i, val){
+  if(!billItems[i]) return;
+  const p = Math.max(0, parseFloat(val)||0);
+  billItems[i].price = p;
+  billItems[i].unitPrice = p;
   updateBill();
 }
 
@@ -7540,10 +7562,19 @@ function rptStaff(sales,cur){
   const staffMap={};
   db.staff.forEach(s=>{staffMap[s.name]={name:s.name,role:s.role,color:s.color,commission:s.commission,revenue:0,count:0,services:{}};});
   sales.forEach(s=>s.items.forEach(it=>{
-    if(!staffMap[it.staff])staffMap[it.staff]={name:it.staff,role:'Staff',color:'#94a3b8',commission:0,revenue:0,count:0,services:{}};
-    staffMap[it.staff].revenue+=it.price;
-    staffMap[it.staff].count++;
-    staffMap[it.staff].services[it.service]=(staffMap[it.staff].services[it.service]||0)+1;
+    // An item can be shared by multiple staff, saved as "Name A, Name B" — split and credit each real staff member
+    const names=(it.staff||'').split(',').map(n=>n.trim()).filter(Boolean);
+    const list=names.length?names:[''];
+    const share=it.price/list.length;
+    list.forEach(nm=>{
+      if(!staffMap[nm]){
+        const known=db.staff.find(s=>s.name===nm);
+        staffMap[nm]={name:nm||'Unassigned',role:known?known.role:'Staff',color:known?known.color:'#94a3b8',commission:known?known.commission:0,revenue:0,count:0,services:{}};
+      }
+      staffMap[nm].revenue+=share;
+      staffMap[nm].count++;
+      staffMap[nm].services[it.service]=(staffMap[nm].services[it.service]||0)+1;
+    });
   }));
   const rows=Object.values(staffMap).filter(r=>Number(r.revenue||0)>0).sort((a,b)=>b.revenue-a.revenue);
   const maxRev=rows[0]?.revenue||1;
@@ -9198,6 +9229,16 @@ function showAddService(){
       <input type="text" id="ns-newcat" placeholder="New category name" style="display:none;margin-top:6px;width:100%;padding:8px;border-radius:8px;border:1px solid #e2e8f0;font-size:13px">
     </div>
     <div class="form-row"><label>Price (${dbSettings().currency}) *</label><input type="number" id="ns-price" value="100" min="0" step="0.01"></div>
+    <div class="form-row"><label>Price Type</label>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="ns-price-type" value="fixed" checked style="width:auto"> Fixed
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="ns-price-type" value="flexible" style="width:auto"> Flexible (editable in POS)
+        </label>
+      </div>
+    </div>
     <div class="form-row"><label>Duration (minutes)</label><input type="number" id="ns-dur" value="45" min="5"></div>
     <div class="form-row"><label>Description (optional)</label><input type="text" id="ns-desc" placeholder="Service description"></div>
     <div class="form-row"><label>Icon (emoji)</label><input type="text" id="ns-icon" value="💅" maxlength="4" style="font-size:20px;width:80px"></div>
@@ -9253,15 +9294,16 @@ function saveService(){
   const duration=parseInt(document.getElementById('ns-dur').value)||45;
   const icon    =document.getElementById('ns-icon').value||'💅';
   const desc    =document.getElementById('ns-desc')?.value.trim()||'';
+  const flexible=(document.querySelector('input[name="ns-price-type"]:checked')?.value)==='flexible';
 
   function _doAdd(imgData){
     const _nsCode=(document.getElementById('ns-svc-code')?.value||'').trim();
-  const svcData={id:Date.now(),name:nm,cat,price,duration,icon,description:desc,active:true,imageData:imgData||null,code:_nsCode||null};
+  const svcData={id:Date.now(),name:nm,cat,price,duration,icon,description:desc,active:true,imageData:imgData||null,code:_nsCode||null,flexible};
     (async()=>{
       try{
         const catRow=(db._catRows||[]).find(function(r){return r.name===cat;});
         const row=await db.saveService({
-          name:nm,icon,price,duration,cat,description:desc,imageData:imgData||null,code:_nsCode||null
+          name:nm,icon,price,duration,cat,description:desc,imageData:imgData||null,code:_nsCode||null,flexible
         });
         if(row)svcData.id=row.id;
         db.services.push(svcData);
@@ -9291,6 +9333,16 @@ function showEditService(id){
     <div class="form-row"><label>Service Name</label><input type="text" id="es-name" value="${s.name}"></div>
     <div class="form-row"><label>Category</label><select id="es-cat">${db.categories.map(c=>`<option ${c===s.cat?'selected':''}>${c}</option>`).join('')}</select></div>
     <div class="form-row"><label>Price (${dbSettings().currency})</label><input type="number" id="es-price" value="${s.price}" min="0"></div>
+    <div class="form-row"><label>Price Type</label>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="es-price-type" value="fixed" ${!s.flexible?'checked':''} style="width:auto"> Fixed
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="es-price-type" value="flexible" ${s.flexible?'checked':''} style="width:auto"> Flexible (editable in POS)
+        </label>
+      </div>
+    </div>
     <div class="form-row"><label>Duration (minutes)</label><input type="number" id="es-dur" value="${s.duration}" min="5"></div>
     <div class="form-row"><label>Icon</label><input type="text" id="es-icon" value="${s.icon}" maxlength="4" style="font-size:20px;width:80px"></div>
     <div class="form-row"><label>Service Image</label>
@@ -9322,6 +9374,7 @@ function updateService(id){
   s.duration=parseInt(document.getElementById('es-dur')?.value)||30;
   s.icon=document.getElementById('es-icon')?.value||'💅';
   s.description=(document.getElementById('es-desc')?.value||'').trim();
+  s.flexible=(document.querySelector('input[name="es-price-type"]:checked')?.value)==='flexible';
   // Service code: use provided or auto-generate
   const _rawCode=(document.getElementById('es-svc-code')?.value||'').trim();
   s.code=_rawCode||('SVC-'+String(s.id).slice(-4).padStart(4,'0'));
@@ -9332,16 +9385,16 @@ function updateService(id){
   function _save(imgData){
     if(imgData!==undefined) s.imageData=imgData;
     // Build patch - only include image_data if column exists (added via migration)
-    const _svcPatch={name:s.name,icon:s.icon,price:s.price,duration:s.duration,category_id:catId,service_code:s.code||null,description:s.description||null};
+    const _svcPatch={name:s.name,icon:s.icon,price:s.price,duration:s.duration,category_id:catId,service_code:s.code||null,description:s.description||null,flexible_price:!!s.flexible};
     if(imgData!==undefined) _svcPatch.image_data=imgData||null;
     sbUpdate('services','id=eq.'+id,_svcPatch)
     .then(function(){closeModal();renderAdminServices();renderPOS();showToast('✅ Service saved!');})
     .catch(function(e){
-      // If image_data column missing, retry without it
-      if(e.message&&e.message.includes('image_data')){
+      // If image_data or flexible_price column missing, retry without them
+      if(e.message&&(e.message.includes('image_data')||/flexible_price/i.test(e.message))){
         const _p2={name:s.name,icon:s.icon,price:s.price,duration:s.duration,category_id:catId,service_code:s.code||null,description:s.description||null};
         sbUpdate('services','id=eq.'+id,_p2)
-          .then(function(){closeModal();renderAdminServices();renderPOS();showToast('✅ Service updated (run migration to enable images)');})
+          .then(function(){closeModal();renderAdminServices();renderPOS();showToast('✅ Service updated (run migration to enable images/flexible pricing)');})
           .catch(function(e2){closeModal();renderAdminServices();showToast('❌ Save failed: '+e2.message,'warn');});
       } else {
         closeModal();renderAdminServices();showToast('❌ Save failed: '+e.message,'warn');
