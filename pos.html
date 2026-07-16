@@ -4985,11 +4985,11 @@ function showCustDetail(id){
           }
           // Compute how much was actually paid vs still owed (credit portion, full or partial)
           let _paid;
-          if(s.status==='credit'||s.payment==='credit'||s.status==='unpaid'){
-            _paid=0;
-          } else if(s.payment==='split'&&_splits){
+          if(s.payment==='split'&&_splits){
             const _creditPart=_splits.filter(function(p){return p.method==='credit';}).reduce(function(a,p){return a+(parseFloat(p.amount)||0);},0);
             _paid=Math.max(0,_amount-_creditPart);
+          } else if(s.status==='credit'||s.payment==='credit'||s.status==='unpaid'){
+            _paid=0;
           } else {
             _paid=_amount;
           }
@@ -5042,10 +5042,14 @@ function _renderCustDetail(id){
     : visits.map(function(v,i){
         const amount = parseFloat(v.amount||0);
         let paid, due;
-        if(v.payment==='credit'||v.status==='credit'||v.status==='unpaid'){
-          paid=0; due=amount;
-        } else if(v.status==='refunded'||v.status==='cancelled'){
+        if(v.status==='refunded'||v.status==='cancelled'){
           paid=0; due=0;
+        } else if(v.payment==='split'){
+          const _p=v.paid;
+          paid=(typeof _p==='number'&&!isNaN(_p))?_p:amount;
+          due=Math.max(0,amount-paid);
+        } else if(v.payment==='credit'||v.status==='credit'||v.status==='unpaid'){
+          paid=0; due=amount;
         } else {
           const _p=v.paid;
           paid=(typeof _p==='number'&&!isNaN(_p))?_p:amount;
