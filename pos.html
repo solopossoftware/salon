@@ -1719,6 +1719,16 @@ class SupabaseDB {
     /* Insert sale */
     // Generate invoice number
     const invNo = 'INV-' + (Math.floor(Math.random()*90000)+10000);
+    // Determine if any part of this sale is still owed (full credit, or a credit slice of a split)
+    let _saleCreditDue = 0;
+    if(saleData.payment==='credit'){
+      _saleCreditDue = saleData.total;
+    } else if(saleData.payment==='split' && saleData.splitPayments){
+      try{
+        const _spd = typeof saleData.splitPayments==='string' ? JSON.parse(saleData.splitPayments) : saleData.splitPayments;
+        _saleCreditDue = (_spd||[]).filter(p=>p.method==='credit').reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
+      }catch(e){}
+    }
     const saleRow = await sbInsert('sales', {
       branch_id:     this.branchId,
       customer_id:   custId || null,
@@ -1731,7 +1741,7 @@ class SupabaseDB {
       pts_earned:    ptsEarned || 0,
       pts_redeemed:  ptsRedeemed || 0,
       sale_date:     new Date().toISOString().split('T')[0],
-      status:        (saleData.payment==='credit'?'credit':saleData.payment==='membership'?'paid':'paid'),
+      status:        (_saleCreditDue>0 ? 'credit' : 'paid'),
       invoice_no:    invNo,
       // Encode split payment breakdown in notes so it survives DB round-trip
       notes:         saleData.payment==='split'&&saleData.splitPayments
@@ -1772,6 +1782,15 @@ class SupabaseDB {
         if (saleData.payment === 'credit') {
           cust.pendingAmount = (cust.pendingAmount || 0) + saleData.total;
           patch.pending_amount = cust.pendingAmount;
+        } else if (saleData.payment === 'split' && saleData.splitPayments) {
+          try{
+            const _spCredit = typeof saleData.splitPayments==='string' ? JSON.parse(saleData.splitPayments) : saleData.splitPayments;
+            const _creditAmt = (_spCredit||[]).filter(p=>p.method==='credit').reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
+            if(_creditAmt>0){
+              cust.pendingAmount = (cust.pendingAmount || 0) + _creditAmt;
+              patch.pending_amount = cust.pendingAmount;
+            }
+          }catch(e){}
         }
         let _walletDeduct = 0;
         if (saleData.payment === 'wallet') {
@@ -1826,6 +1845,11 @@ class SupabaseDB {
       total: saleData.total,
       discount: saleData.discount || 0,
       payment: saleData.payment,
+      status: (_saleCreditDue>0 ? 'credit' : 'paid'),
+      splitPayments: (saleData.payment==='split'&&saleData.splitPayments)
+        ? (typeof saleData.splitPayments==='string'?JSON.parse(saleData.splitPayments):saleData.splitPayments)
+        : null,
+      invoiceNo: invNo,
       ptsEarned,
       items: items.map(it => ({
         service: it.name, price: it.price,
@@ -3908,6 +3932,15 @@ function renderInvoicesPage(){
         const items   = (s.items||[]).map(function(i){return i.service||i.name||'';}).filter(Boolean).join(', ');
         const rowStyle= status==='cancelled'?'opacity:.6':'';
         var sid = s.id;
+        // Compute actual amount due: full total for pure credit, just the credit slice for a split
+        var dueAmt = 0;
+        if(status==='credit'||status==='pending'){
+          if(s.payment==='split'&&Array.isArray(s.splitPayments)){
+            dueAmt = s.splitPayments.filter(function(p){return p.method==='credit';}).reduce(function(a,p){return a+(parseFloat(p.amount)||0);},0);
+          } else {
+            dueAmt = parseFloat(s.total)||0;
+          }
+        }
         return '<tr style="'+rowStyle+'">'
           + '<td style="font-size:12px">'+s.date+'</td>'
           + '<td style="font-family:monospace;font-size:12px;color:#0369a1;font-weight:700">'+(s.invoiceNo||('INV-'+String(sid).padStart(4,'0')))+'</td>'
@@ -3925,7 +3958,7 @@ function renderInvoicesPage(){
                   + (status==='paid'
                     ? '<button onclick="returnSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:11px;font-weight:700;cursor:pointer">↩ Refund</button>'
                     : (status==='credit'||status==='pending'
-                      ? '<button onclick="payCustInvoice('+sid+','+s.total+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer">💰 Collect</button>'
+                      ? '<button onclick="payCustInvoice('+sid+','+dueAmt+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer">💰 Collect</button>'
                       : ''))
                 )
           + '</div></td>'
@@ -4942,14 +4975,33 @@ function showCustDetail(id){
     .then(function(rows){
       if(rows&&rows.length){
         c.visits = rows.filter(function(s){return s.status!=='cancelled';}).map(function(s){
+          const _notes = s.notes||'';
+          const _amount = parseFloat(s.total||0);
+          // Parse split payment breakdown out of notes, same format used elsewhere (SPLIT:[...])
+          let _splits = null;
+          if(s.payment==='split'){
+            const _sm = _notes.match(/SPLIT:(\[.+?\])/);
+            if(_sm){ try{ _splits=JSON.parse(_sm[1]); }catch(_e){} }
+          }
+          // Compute how much was actually paid vs still owed (credit portion, full or partial)
+          let _paid;
+          if(s.status==='credit'||s.payment==='credit'||s.status==='unpaid'){
+            _paid=0;
+          } else if(s.payment==='split'&&_splits){
+            const _creditPart=_splits.filter(function(p){return p.method==='credit';}).reduce(function(a,p){return a+(parseFloat(p.amount)||0);},0);
+            _paid=Math.max(0,_amount-_creditPart);
+          } else {
+            _paid=_amount;
+          }
           return {
             saleId:    s.id,
             invoiceNo: s.invoice_no||('INV-'+String(s.id).padStart(4,'0')),
             date:      (s.sale_date||s.created_at||'').split('T')[0],
             service:   (s.sale_items||[]).map(function(i){return i.name||i.service||'';}).join(', ')||'—',
             items:     (s.sale_items||[]).map(function(i){return i.name||'';}).join(', '),
-            amount:    parseFloat(s.total||0),
-            paid:      (s.status==='credit'||s.payment==='credit'||s.status==='unpaid')?0:parseFloat(s.total||0),
+            amount:    _amount,
+            paid:      _paid,
+            splitPayments: _splits,
             staff:     (s.sale_items&&s.sale_items[0])?s.sale_items[0].staff_names||'':'',
             ptsEarned: s.pts_earned||0,
             status:    s.status||'paid',
@@ -4995,16 +5047,24 @@ function _renderCustDetail(id){
         } else if(v.status==='refunded'||v.status==='cancelled'){
           paid=0; due=0;
         } else {
-          const _p=parseFloat(v.paid||0);
-          paid=_p>0?_p:amount; due=Math.max(0,amount-paid);
+          const _p=v.paid;
+          paid=(typeof _p==='number'&&!isNaN(_p))?_p:amount;
+          due=Math.max(0,amount-paid);
         }
         const invNo  = v.invoiceNo || ('INV-'+String(v.id||i+1).padStart(3,'0'));
         const dateStr= v.date||'';
         const items  = v.service||v.items||'';
+        // Show split payment breakdown (e.g. "cash 150 + credit 50") so it's visible on the customer page
+        const splitBadge = (v.payment==='split'&&Array.isArray(v.splitPayments)&&v.splitPayments.length)
+          ? '<div style="margin-top:3px">'+v.splitPayments.map(function(p){
+              const isCredit=p.method==='credit';
+              return '<span style="display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;margin:1px;background:'+(isCredit?'#eef2fb':'#f0fdf4')+';color:'+(isCredit?'#1e40af':'#16a34a')+'">'+p.method+' '+cur+' '+parseFloat(p.amount||0).toFixed(0)+'</span>';
+            }).join('')+'</div>'
+          : '';
         return '<tr style="border-bottom:1px solid #f1f5f9">'
           +'<td style="padding:10px 8px;color:#1e40af;font-weight:700;font-family:monospace;font-size:12px">'+invNo+'</td>'
           +'<td style="padding:10px 8px;font-size:12px">'+dateStr+'</td>'
-          +'<td style="padding:10px 8px;font-size:12px;color:#64748b">'+items+'</td>'
+          +'<td style="padding:10px 8px;font-size:12px;color:#64748b">'+items+splitBadge+'</td>'
           +'<td style="padding:10px 8px;font-size:12px;font-weight:700">'+amount.toFixed(0)+'</td>'
           +'<td style="padding:10px 8px;font-size:12px;color:#16a34a;font-weight:700">'+paid.toFixed(0)+'</td>'
           +'<td style="padding:10px 8px;font-size:12px;color:'+(due>0?'#1e40af':'#94a3b8')+';font-weight:700">'+due.toFixed(0)+'</td>'
@@ -5278,8 +5338,20 @@ function _doPayCustInv(saleId, due){
   const method=document.getElementById('pay-inv-method')?.value||'cash';
   closeModal();
   const s=db.sales.find(function(x){return x.id==saleId;});
-  if(s){s.status='paid';s.payment=method;}
-  sbUpdate('sales','id=eq.'+saleId,{status:'paid',payment:method})
+  let patch;
+  if(s && s.payment==='split' && Array.isArray(s.splitPayments)){
+    // Convert the credit slice of the split into the new method, keep the rest of the split intact
+    const newSplits = s.splitPayments.map(function(p){
+      return p.method==='credit' ? {method:method, amount:p.amount} : p;
+    });
+    s.splitPayments = newSplits;
+    s.status='paid';
+    patch = { status:'paid', notes:'SPLIT:'+JSON.stringify(newSplits) };
+  } else {
+    if(s){s.status='paid';s.payment=method;}
+    patch = { status:'paid', payment:method };
+  }
+  sbUpdate('sales','id=eq.'+saleId,patch)
     .then(function(){showToast('✅ Payment of '+dbSettings().currency+' '+parseFloat(due).toFixed(2)+' via '+method);})
     .catch(function(){showToast('Payment saved locally','warn');});
   const cust=db.customers.find(function(x){return s?x.id==s.customerId:false;});
