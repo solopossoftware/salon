@@ -723,13 +723,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
               <div class="bill-row"><span>Discount</span><span id="b-disc" style="color:#1e40af">-QAR 0</span></div>
               <div class="bill-row" id="b-tax-row" style="display:none"><span id="b-tax-label">Tax</span><span id="b-tax" style="color:#7c3aed">QAR 0</span></div>
               <div class="bill-total-row"><span>Total</span><span id="b-total">QAR 0</span></div>
-              <div class="pay-grid">
+              <div class="pay-grid" style="grid-template-columns:repeat(4,1fr)">
                 <button class="pay-btn sel" id="pay-cash" onclick="selPay('cash',this)">💵 Cash</button>
                 <button class="pay-btn" id="pay-card" onclick="selPay('card',this)">💳 Card</button>
                 <button class="pay-btn" id="pay-credit" onclick="selPay('credit',this)">🏷️ Credit</button>
                 <button class="pay-btn" id="pay-split" onclick="showSplitPayment()">⚡ Split</button>
                 <button class="pay-btn" id="pay-membership" onclick="selPay('membership',this)">💎 Memb.</button>
                 <button class="pay-btn" id="pay-online" onclick="selPay('online',this)">📱 Online</button>
+                <button class="pay-btn" id="pay-wallet" onclick="selPay('wallet',this)">👛 Wallet</button>
               </div>
               <!-- Draft tabs -->
               <div id="draft-bar" class="draft-bar" style="display:none">
@@ -1295,8 +1296,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
         <button class="pay-btn" onclick="selPay('card',this)">💳 Card</button>
         <button class="pay-btn" onclick="selPay('credit',this)">🏷️ Credit</button>
         <button class="pay-btn" onclick="selPay('membership',this)">💎 Membership</button>
-        <button class="pay-btn" onclick="selPay('split',this)">⚡ Split</button>
+        <button class="pay-btn" id="pay-split-mob" onclick="showSplitPayment()">⚡ Split</button>
         <button class="pay-btn" onclick="selPay('online',this)">📱 Online</button>
+        <button class="pay-btn" onclick="selPay('wallet',this)">👛 Wallet</button>
       </div>
       <button class="checkout-btn" onclick="checkout()">Complete Sale →</button>
       <button onclick="previewReceipt()" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;color:#0f172a;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit">🖨️ Preview &amp; Print Bill</button>
@@ -1541,6 +1543,7 @@ class SupabaseDB {
       id: c.id, name: c.name, phone: c.phone||'',
       email: c.email||'', points: c.points||0,
       pendingAmount: parseFloat(c.pending_amount||0),
+      walletBalance: parseFloat(c.wallet_balance||0),
       creditBalance: 0, note: c.note||'',
       active: c.active!==false,   // false only if explicitly false in DB
       visits: []
@@ -1770,7 +1773,19 @@ class SupabaseDB {
           cust.pendingAmount = (cust.pendingAmount || 0) + saleData.total;
           patch.pending_amount = cust.pendingAmount;
         }
-        await sbUpdate('customers', 'id=eq.'+custId, patch);
+        if (saleData.payment === 'wallet') {
+          cust.walletBalance = Math.max(0, (cust.walletBalance || 0) - saleData.total);
+          patch.wallet_balance = cust.walletBalance;
+        }
+        try{
+          await sbUpdate('customers', 'id=eq.'+custId, patch);
+        }catch(e){
+          // wallet_balance column not migrated yet on this project — retry without it
+          if(patch.wallet_balance!==undefined && e.message && /wallet_balance/i.test(e.message)){
+            const p2=Object.assign({},patch); delete p2.wallet_balance;
+            await sbUpdate('customers','id=eq.'+custId,p2);
+          } else { throw e; }
+        }
 
         /* Membership payment — deduct card balance */
         if (saleData.payment === 'membership') {
@@ -3565,7 +3580,7 @@ function selPay(m,el){
   document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('sel'));
   if(el)el.classList.add('sel');
   const cid=document.getElementById('pos-cust')?.value;
-  if((m==='membership'||m==='credit')&&!cid){
+  if((m==='membership'||m==='credit'||m==='wallet')&&!cid){
     showToast('Select a customer to use '+m,'warn');
   }
 }
@@ -4213,6 +4228,9 @@ function showSplitPayment(){
   
   showModal(`<div class="modal-title">⚡ Split Payment — ${cur} ${total}</div>
     <div style="font-size:12px;color:#64748b;margin-bottom:14px">Enter amount for each payment method. Must total ${cur} ${total}.</div>
+    <div style="margin-bottom:10px">
+      <button onclick="quickSplitHalf(${total})" style="padding:6px 12px;border-radius:8px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Split evenly in 2 (50/50)</button>
+    </div>
     <div id="split-rows" style="display:flex;flex-direction:column;gap:8px">
       <div class="split-row" style="display:flex;gap:8px;align-items:center">
         <select class="split-method" style="flex:1;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit">
@@ -4235,6 +4253,21 @@ function showSplitPayment(){
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="confirmSplitPayment(${total})">Complete Split →</button>
     </div>`);
+  updateSplitBalance();
+}
+function quickSplitHalf(total){
+  const rows = document.getElementById('split-rows');
+  if(!rows) return;
+  const half1 = Math.round((total/2)*100)/100;
+  const half2 = Math.round((total-half1)*100)/100;
+  rows.innerHTML = '';
+  addSplitRow(); addSplitRow();
+  const amtInputs = rows.querySelectorAll('.split-amt');
+  if(amtInputs[0]) amtInputs[0].value = half1;
+  if(amtInputs[1]) amtInputs[1].value = half2;
+  const methodSelects = rows.querySelectorAll('.split-method');
+  if(methodSelects[0]) methodSelects[0].value = 'cash';
+  if(methodSelects[1]) methodSelects[1].value = 'card';
   updateSplitBalance();
 }
 function addSplitRow(){
@@ -4274,8 +4307,11 @@ function confirmSplitPayment(total){
   window._splitPayments = payments;
   selPayment = 'split';
   document.querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('sel'));
-  const splitBtn = document.getElementById('pay-split');
-  if(splitBtn){ splitBtn.classList.add('sel'); splitBtn.textContent = '⚡ '+payments.map(p=>p.method).join('+'); }
+  const splitLabel = '⚡ '+payments.map(p=>p.method).join('+');
+  ['pay-split','pay-split-mob'].forEach(function(id){
+    const btn = document.getElementById(id);
+    if(btn){ btn.classList.add('sel'); btn.textContent = splitLabel; }
+  });
   closeModal();
   showToast('Split: '+payments.map(p=>dbSettings().currency+' '+p.amount+' '+p.method).join(' + '));
 }
@@ -4298,6 +4334,12 @@ function checkout(){
   const _custVisible=_pcl&&_pcl.textContent&&_pcl.textContent.trim()!=='Select Customer'&&_pcl.textContent.trim()!=='+ Customer'&&_pcl.textContent.trim()!=='';
   if(selPayment==='credit'&&!cid&&!_custVisible){showToast('Select customer for credit payment','warn');return;}
   if(selPayment==='membership'&&!cid){showToast('Select customer for membership payment','warn');return;}
+  if(selPayment==='wallet'){
+    if(!cid){showToast('Select customer for wallet payment','warn');return;}
+    const _wc=db.customers.find(c=>c.id==cid);
+    const _wbal=(_wc&&_wc.walletBalance)||0;
+    if(_wbal<total){showToast('Insufficient wallet balance ('+dbSettings().currency+' '+_wbal.toFixed(2)+' available)','warn');return;}
+  }
 
   const earnRate=dbSettings().ptsEarn||10;
   const ptsEarned=cid?Math.floor(total*earnRate):0;
@@ -4865,6 +4907,7 @@ function showCustDetail(id){
         c.note=cr.note||'';
         c.points=cr.points||0;
         c.pendingAmount=parseFloat(cr.pending_amount||0);
+        c.walletBalance=parseFloat(cr.wallet_balance||0);
         c.active=cr.active!==false;
       }
     }).catch(function(){});
@@ -4987,7 +5030,7 @@ function _renderCustDetail(id){
     </div>
 
     <!-- KPI Strip -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
       <div style="background:white;border-radius:12px;border:1.5px solid #e2e8f0;padding:14px;text-align:center">
         <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:4px">VISITS</div>
         <div style="font-size:22px;font-weight:900;color:#0f172a">${visits.length}</div>
@@ -5003,6 +5046,11 @@ function _renderCustDetail(id){
       <div style="background:white;border-radius:12px;border:1.5px solid #e2e8f0;padding:14px;text-align:center">
         <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:4px">PENDING</div>
         <div style="font-size:16px;font-weight:900;color:${(c.pendingAmount||0)>0?'#1e40af':'#16a34a'}">${cur} ${(c.pendingAmount||0)}</div>
+      </div>
+      <div style="background:white;border-radius:12px;border:1.5px solid #93aee0;padding:14px;text-align:center">
+        <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:4px">👛 WALLET</div>
+        <div style="font-size:16px;font-weight:900;color:#1e40af">${cur} ${(c.walletBalance||0).toLocaleString()}</div>
+        <button onclick="showAddWalletFunds(${c.id})" style="margin-top:6px;padding:3px 10px;border-radius:6px;border:1.5px solid #1e40af;background:#eef2fb;font-size:10px;font-weight:700;cursor:pointer;color:#1e40af;font-family:inherit">+ Add Funds</button>
       </div>
     </div>
 
@@ -5037,6 +5085,39 @@ function _renderCustDetail(id){
     </div>`;
 
   renderCustList(db.customers);
+}
+
+function showAddWalletFunds(id){
+  const c=db.customers.find(function(x){return x.id==id;});if(!c)return;
+  const cur=dbSettings().currency;
+  showModal(`<div class="modal-title">👛 Add Wallet Funds — ${c.name}</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px">Current balance: <b>${cur} ${(c.walletBalance||0).toLocaleString()}</b>. Add an advance payment the customer can use toward a future visit.</div>
+    <div class="form-row"><label>Amount (${cur}) *</label><input type="number" id="wf-amount" min="0.01" step="0.01" placeholder="e.g. 200"></div>
+    <div class="form-row"><label>Note (optional)</label><input type="text" id="wf-note" placeholder="e.g. Cash advance received"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddWalletFunds(${id})">Add Funds →</button>
+    </div>`);
+}
+function saveAddWalletFunds(id){
+  const c=db.customers.find(function(x){return x.id==id;});if(!c)return;
+  const amt=parseFloat(document.getElementById('wf-amount')?.value)||0;
+  if(amt<=0){showToast('Enter a valid amount','warn');return;}
+  const newBal=(c.walletBalance||0)+amt;
+  sbUpdate('customers','id=eq.'+id,{wallet_balance:newBal})
+    .then(function(){
+      c.walletBalance=newBal;
+      closeModal();
+      _renderCustDetail(id);
+      showToast('✅ '+dbSettings().currency+' '+amt+' added to wallet');
+    })
+    .catch(function(e){
+      if(e.message && /wallet_balance/i.test(e.message)){
+        showToast('Wallet feature needs a database update — run the migration (see notes)','warn');
+      } else {
+        showToast('Failed to add funds: '+e.message,'warn');
+      }
+    });
 }
 
 function toggleCustActive(id){
