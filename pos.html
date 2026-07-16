@@ -1773,8 +1773,17 @@ class SupabaseDB {
           cust.pendingAmount = (cust.pendingAmount || 0) + saleData.total;
           patch.pending_amount = cust.pendingAmount;
         }
+        let _walletDeduct = 0;
         if (saleData.payment === 'wallet') {
-          cust.walletBalance = Math.max(0, (cust.walletBalance || 0) - saleData.total);
+          _walletDeduct = saleData.total;
+        } else if (saleData.payment === 'split' && saleData.splitPayments) {
+          try{
+            const _sp = typeof saleData.splitPayments==='string' ? JSON.parse(saleData.splitPayments) : saleData.splitPayments;
+            _walletDeduct = (_sp||[]).filter(p=>p.method==='wallet').reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
+          }catch(e){}
+        }
+        if (_walletDeduct > 0) {
+          cust.walletBalance = Math.max(0, (cust.walletBalance || 0) - _walletDeduct);
           patch.wallet_balance = cust.walletBalance;
         }
         try{
@@ -4238,6 +4247,7 @@ function showSplitPayment(){
           <option value="card">💳 Card</option>
           <option value="online">📱 Online</option>
           <option value="credit">🏷️ Credit</option>
+          <option value="wallet">👛 Wallet</option>
         </select>
         <input type="number" class="split-amt" placeholder="Amount" min="0" step="0.01"
           style="width:120px;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit"
@@ -4277,7 +4287,7 @@ function addSplitRow(){
   row.style.cssText = 'display:flex;gap:8px;align-items:center';
   const sel = document.createElement('select');
   sel.className='split-method'; sel.style.cssText='flex:1;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit';
-  ['cash','card','online','credit'].forEach(function(m){ const o=document.createElement('option'); o.value=m; o.textContent={'cash':'💵 Cash','card':'💳 Card','online':'📱 Online','credit':'🏷️ Credit'}[m]; sel.appendChild(o); });
+  ['cash','card','online','credit','wallet'].forEach(function(m){ const o=document.createElement('option'); o.value=m; o.textContent={'cash':'💵 Cash','card':'💳 Card','online':'📱 Online','credit':'🏷️ Credit','wallet':'👛 Wallet'}[m]; sel.appendChild(o); });
   const inp = document.createElement('input');
   inp.type='number'; inp.className='split-amt'; inp.placeholder='Amount'; inp.min='0'; inp.step='0.01'; inp.value='0';
   inp.style.cssText='width:120px;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit';
@@ -4303,6 +4313,13 @@ function confirmSplitPayment(total){
   })).filter(p=>p.amount>0);
   const paid = payments.reduce((a,p)=>a+p.amount,0);
   if(Math.abs(paid-total)>0.01){ showToast('Amounts must add up to '+dbSettings().currency+' '+total,'warn'); return; }
+  const walletAmt = payments.filter(p=>p.method==='wallet').reduce((a,p)=>a+p.amount,0);
+  if(walletAmt>0){
+    const cid=selectedCustId||null;
+    const cust=cid?db.customers.find(c=>c.id==cid):null;
+    if(!cust){ showToast('Select a customer first to use Wallet in a split','warn'); return; }
+    if((cust.walletBalance||0)<walletAmt){ showToast('Insufficient wallet balance ('+dbSettings().currency+' '+(cust.walletBalance||0).toFixed(2)+' available)','warn'); return; }
+  }
   // Store split info for checkout
   window._splitPayments = payments;
   selPayment = 'split';
@@ -4339,6 +4356,15 @@ function checkout(){
     const _wc=db.customers.find(c=>c.id==cid);
     const _wbal=(_wc&&_wc.walletBalance)||0;
     if(_wbal<total){showToast('Insufficient wallet balance ('+dbSettings().currency+' '+_wbal.toFixed(2)+' available)','warn');return;}
+  }
+  if(selPayment==='split'){
+    const _splitWalletAmt=(window._splitPayments||[]).filter(p=>p.method==='wallet').reduce((a,p)=>a+p.amount,0);
+    if(_splitWalletAmt>0){
+      if(!cid){showToast('Select customer — split includes Wallet','warn');return;}
+      const _wc2=db.customers.find(c=>c.id==cid);
+      const _wbal2=(_wc2&&_wc2.walletBalance)||0;
+      if(_wbal2<_splitWalletAmt){showToast('Insufficient wallet balance for split ('+dbSettings().currency+' '+_wbal2.toFixed(2)+' available)','warn');return;}
+    }
   }
 
   const earnRate=dbSettings().ptsEarn||10;
