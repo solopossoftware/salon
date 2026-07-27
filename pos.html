@@ -10230,6 +10230,18 @@ initLoginScreen();
     }
   } catch(e){ localStorage.removeItem('pos_session'); }
 })();
+
+// ─── AUTO-REFRESH ───────────────────────────────────────────────
+// Silently re-pulls latest data from Supabase every 10 minutes so multiple
+// staff/devices stay in sync, without disrupting anyone mid-entry.
+setInterval(function(){
+  if(!currentUser || _dbReal===null) return;                 // not logged in yet
+  var mr=document.getElementById('modal-root');
+  if(mr && mr.innerHTML.trim()) return;                       // skip while a modal/form is open
+  db.loadAll().then(function(){
+    if(currentPage) navTo(currentPage);
+  }).catch(function(){ /* silent - next cycle will retry */ });
+}, 10*60*1000);
 </script>
 </body>
 </html>
