@@ -3953,8 +3953,10 @@ function renderInvoicesPage(){
               + '<button onclick="previewReceipt('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #e2e8f0;background:white;font-size:11px;font-weight:700;cursor:pointer">🖨️ Print</button>'
               + (status==='cancelled'||status==='refunded'
                 ? '<span style="font-size:11px;color:#94a3b8;font-style:italic">'+status+'</span>'
-                : '<button onclick="editInvoice('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>'
-                  + '<button onclick="cancelSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-size:11px;font-weight:700;cursor:pointer">✕ Cancel</button>'
+                : (currentUser.role!=='cashier'
+                    ? '<button onclick="editInvoice('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>'
+                      + '<button onclick="cancelSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-size:11px;font-weight:700;cursor:pointer">✕ Cancel</button>'
+                    : '')
                   + (status==='paid'
                     ? '<button onclick="returnSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:11px;font-weight:700;cursor:pointer">↩ Refund</button>'
                     : (status==='credit'||status==='pending'
@@ -3973,6 +3975,7 @@ function _invEmpty(title, sub){
 
 // ── EDIT INVOICE — load sale back into POS ────────────────
 function editInvoice(id){
+  if(currentUser && currentUser.role==='cashier'){ showToast('Cashiers cannot edit invoices','warn'); return; }
   const s = db.sales.find(function(x){ return x.id==id; });
   if(!s){ showToast('Invoice not found','warn'); return; }
   if(!confirm('Edit this invoice? It will be reopened in POS. The original sale will be cancelled.')) return;
@@ -7722,7 +7725,7 @@ function rptSales(sales,cur){
         <td><span class="s-badge ${s.status==='cancelled'?'s-cancelled':s.status==='refunded'?'s-inprogress':'s-done'}">${s.status||'paid'}</span></td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="previewReceipt(${s.id})" style="font-size:10px;padding:3px 6px">🖨️</button>
-          ${s.status!=='cancelled'&&s.status!=='refunded'?`<button class="btn btn-sm" onclick="cancelSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#f59e0b;color:#f59e0b">Cancel</button>`:''}
+          ${s.status!=='cancelled'&&s.status!=='refunded'&&currentUser.role!=='cashier'?`<button class="btn btn-sm" onclick="cancelSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#f59e0b;color:#f59e0b">Cancel</button>`:''}
           ${s.status==='paid'?`<button class="btn btn-sm" onclick="returnSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#1e40af;color:#1e40af">Refund</button>`:''}
         </td>
       </tr>`).join('')}</tbody>
@@ -7768,6 +7771,8 @@ function rptServices(sales,cur){
 
 // STAFF REPORT
 function rptStaff(sales,cur){
+  window._staffReportSales = sales;  // used by showStaffSalesDetail drill-down
+  window._staffReportCur = cur;
   const staffMap=staffRevenueMap(sales);
   const rows=Object.values(staffMap).filter(r=>Number(r.revenue||0)>0).sort((a,b)=>b.revenue-a.revenue);
   const maxRev=rows[0]?.revenue||1;
@@ -7788,15 +7793,54 @@ function rptStaff(sales,cur){
   </div>
   <div class="card"><div class="card-title">Staff Commission Summary</div>
     ${rptTable(
-      ['Staff','Role','Revenue','Commission %','Commission Due','Services Count'],
+      ['Staff','Role','Revenue','Commission %','Commission Due','Services Count',''],
       rows.map(r=>{const c=Math.round(Number(r.revenue||0)*r.commission/100);return[
         `<div style="display:flex;align-items:center;gap:6px"><div class="staff-ava" style="background:${r.color};width:22px;height:22px;font-size:9px">${r.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>${r.name}</div>`,
         r.role,`<b>${cur} ${Number(r.revenue||0)}</b>`,`${r.commission}%`,
-        `<span style="color:#0d9488;font-weight:800">${cur} ${c}</span>`,r.count
+        `<span style="color:#0d9488;font-weight:800">${cur} ${c}</span>`,r.count,
+        `<button onclick="showStaffSalesDetail('${r.name.replace(/'/g,"\\'")}')" style="padding:4px 10px;border-radius:6px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">👁 Details</button>`
       ];}),
-      ['left','left','right','center','right','center']
+      ['left','left','right','center','right','center','center']
     )}
   </div>`;
+}
+function showStaffSalesDetail(staffName){
+  const sales = window._staffReportSales||[];
+  const cur = window._staffReportCur||dbSettings().currency;
+  const rows=[];
+  sales.forEach(function(s){
+    (s.items||[]).forEach(function(it){
+      const names=(it.staff||'').split(',').map(function(n){return n.trim();}).filter(Boolean);
+      const list=names.length?names:[''];
+      if(list.indexOf(staffName)===-1) return;
+      const share=it.price/list.length;
+      rows.push({
+        date: s.date, invoiceNo: s.invoiceNo||('INV-'+String(s.id).padStart(4,'0')),
+        customer: s.customer||'Walk-in', service: it.service||it.name||'—',
+        amount: share, payment: s.payment||'—', saleId: s.id
+      });
+    });
+  });
+  rows.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  const total = rows.reduce(function(a,r){return a+r.amount;},0);
+  showModal(`<div class="modal-title">👤 ${staffName} — Sales Detail</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:12px">${rows.length} service line(s) · Total ${cur} ${Math.round(total).toLocaleString()} (current report period)</div>
+    <div style="max-height:420px;overflow-y:auto">
+    <table class="inv-table" style="width:100%;min-width:520px">
+      <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Service</th><th>Payment</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>${rows.length===0?'<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8">No sales in this period</td></tr>':rows.map(function(r){
+        return '<tr>'
+          +'<td style="font-size:12px">'+r.date+'</td>'
+          +'<td style="font-family:monospace;font-size:11px;color:#0369a1">'+r.invoiceNo+'</td>'
+          +'<td style="font-size:12px">'+r.customer+'</td>'
+          +'<td style="font-size:12px">'+r.service+'</td>'
+          +'<td><span class="s-badge s-done" style="font-size:9px">'+r.payment+'</span></td>'
+          +'<td style="text-align:right;font-weight:700;font-size:12px">'+cur+' '+r.amount.toFixed(0)+'</td>'
+          +'</tr>';
+      }).join('')}</tbody>
+    </table>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`);
 }
 
 // INVENTORY REPORT
@@ -9622,6 +9666,7 @@ function deleteService(id){
 // CATEGORIES
 // ── CANCEL & RETURN INVOICE ──────────────────────────────
 function cancelSaleInv(id){
+  if(currentUser && currentUser.role==='cashier'){ showToast('Cashiers cannot cancel invoices','warn'); return; }
   const s=db.sales.find(function(x){return x.id==id;});
   if(!s){showToast('Invoice not found','warn');return;}
   if(s.status==='cancelled'){showToast('Already cancelled','warn');return;}
