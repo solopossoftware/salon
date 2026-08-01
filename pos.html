@@ -3957,7 +3957,7 @@ function renderInvoicesPage(){
                     ? '<button onclick="editInvoice('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>'
                       + '<button onclick="cancelSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-size:11px;font-weight:700;cursor:pointer">✕ Cancel</button>'
                     : '')
-                  + (status==='paid'
+                  + (status==='paid'&&currentUser.role!=='cashier'
                     ? '<button onclick="returnSaleInv('+sid+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:11px;font-weight:700;cursor:pointer">↩ Refund</button>'
                     : (status==='credit'||status==='pending'
                       ? '<button onclick="payCustInvoice('+sid+','+dueAmt+')" style="padding:5px 9px;border-radius:6px;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer">💰 Collect</button>'
@@ -7726,7 +7726,7 @@ function rptSales(sales,cur){
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="previewReceipt(${s.id})" style="font-size:10px;padding:3px 6px">🖨️</button>
           ${s.status!=='cancelled'&&s.status!=='refunded'&&currentUser.role!=='cashier'?`<button class="btn btn-sm" onclick="cancelSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#f59e0b;color:#f59e0b">Cancel</button>`:''}
-          ${s.status==='paid'?`<button class="btn btn-sm" onclick="returnSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#1e40af;color:#1e40af">Refund</button>`:''}
+          ${s.status==='paid'&&currentUser.role!=='cashier'?`<button class="btn btn-sm" onclick="returnSaleInv(${s.id})" style="font-size:10px;padding:3px 6px;border-color:#1e40af;color:#1e40af">Refund</button>`:''}
         </td>
       </tr>`).join('')}</tbody>
     </table></div>
@@ -9689,6 +9689,7 @@ function cancelSaleInv(id){
 }
 
 function returnSaleInv(id){
+  if(currentUser && currentUser.role==='cashier'){ showToast('Cashiers cannot process refunds','warn'); return; }
   const s=db.sales.find(function(x){return x.id==id;});
   if(!s){showToast('Invoice not found','warn');return;}
   if(s.status==='refunded'){showToast('Already refunded','warn');return;}
