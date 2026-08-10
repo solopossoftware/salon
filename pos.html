@@ -2912,6 +2912,8 @@ function navTo(page){
   if(page==='attendance')renderAttendance();
   if(page==='reports')renderReports();
   if(page==='admin')renderAdmin();
+  if(page==='invoices')renderInvoicesPage();
+  if(page==='daybook')renderDaybook();
 }
 
 function topAction(){
@@ -3941,7 +3943,7 @@ function renderInvoicesPage(){
             dueAmt = parseFloat(s.total)||0;
           }
         }
-        return '<tr style="'+rowStyle+'">'
+        return '<tr id="inv-row-'+sid+'" style="'+rowStyle+'">'
           + '<td style="font-size:12px">'+s.date+'</td>'
           + '<td style="font-family:monospace;font-size:12px;color:#0369a1;font-weight:700">'+(s.invoiceNo||('INV-'+String(sid).padStart(4,'0')))+'</td>'
           + '<td style="font-weight:700">'+s.customer+'</td>'
@@ -7829,9 +7831,9 @@ function showStaffSalesDetail(staffName){
     <table class="inv-table" style="width:100%;min-width:520px">
       <thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Service</th><th>Payment</th><th style="text-align:right">Amount</th></tr></thead>
       <tbody>${rows.length===0?'<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8">No sales in this period</td></tr>':rows.map(function(r){
-        return '<tr>'
+        return '<tr onclick="viewInvoiceFromStaffDetail('+r.saleId+')" style="cursor:pointer" title="Click to open this invoice">'
           +'<td style="font-size:12px">'+r.date+'</td>'
-          +'<td style="font-family:monospace;font-size:11px;color:#0369a1">'+r.invoiceNo+'</td>'
+          +'<td style="font-family:monospace;font-size:11px;color:#0369a1;text-decoration:underline">'+r.invoiceNo+'</td>'
           +'<td style="font-size:12px">'+r.customer+'</td>'
           +'<td style="font-size:12px">'+r.service+'</td>'
           +'<td><span class="s-badge s-done" style="font-size:9px">'+r.payment+'</span></td>'
@@ -7841,6 +7843,24 @@ function showStaffSalesDetail(staffName){
     </table>
     </div>
     <div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`);
+}
+function viewInvoiceFromStaffDetail(saleId){
+  closeModal();
+  // Reset any Invoices page filters that might be hiding this invoice
+  invTab='completed';
+  const _sb=document.getElementById('inv-search-box'); if(_sb)_sb.value='';
+  const _df=document.getElementById('inv-date-from');   if(_df)_df.value='';
+  const _dt=document.getElementById('inv-date-to');     if(_dt)_dt.value='';
+  navTo('invoices');
+  setTimeout(function(){
+    const row=document.getElementById('inv-row-'+saleId);
+    if(row){
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+      row.style.transition='background-color .3s';
+      row.style.backgroundColor='#fef3c7';
+      setTimeout(function(){ row.style.backgroundColor=''; },2500);
+    }
+  },150);
 }
 
 // INVENTORY REPORT
@@ -10031,14 +10051,21 @@ function buildReceiptHTML(sale, isPreview){
   html+=`<div class="r-line"></div>`;
   html+=`<div class="r-row"><span>Date: ${date}</span><span>${saleId}</span></div>`;
   if(custName&&custName!=='Walk-in') html+=`<div>Customer: <b>${custName}</b></div>`;
-  const staffName=items[0]?.staff||'';
-  if(staffName) html+=`<div>Staff: ${staffName}</div>`;
+  // Only show a single top-level Staff line if every item shares the same staff;
+  // otherwise each item shows its own staff name below (multi-staff bill).
+  const _staffNames=items.map(it=>it.staff||'').filter(Boolean);
+  const _uniqueStaff=[...new Set(_staffNames)];
+  const _sameStaffAll=_uniqueStaff.length===1&&_staffNames.length===items.length;
+  if(_sameStaffAll) html+=`<div>Staff: ${_uniqueStaff[0]}</div>`;
   html+=`<div class="r-line"></div>`;
 
   // Items
   items.forEach(it=>{
     const qty=it.qty&&it.qty>1?` x${it.qty}`:'';
     html+=`<div class="r-row"><span class="r-name">${it.service||it.name}${qty}</span><span>${cur} ${it.price}</span></div>`;
+    if(!_sameStaffAll&&it.staff){
+      html+=`<div style="font-size:9px;color:#666;padding-left:4px">— ${it.staff}</div>`;
+    }
   });
 
   html+=`<div class="r-line"></div>`;
