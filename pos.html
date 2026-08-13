@@ -9298,14 +9298,14 @@ function toggleEmployee(id){
 
 function downloadServiceTemplate() {
   const rows = [
-    ['name', 'category', 'price', 'duration_minutes', 'icon'],
-    ['Haircut', 'Hair', '120', '45', '✂️'],
-    ['Hair Color', 'Hair', '350', '90', '🎨'],
-    ['Manicure', 'Nails', '100', '45', '💅'],
-    ['Facial', 'Skin', '250', '60', '🌸'],
-    ['Massage', 'Body', '300', '60', '🧖'],
+    ['name', 'name_ar', 'category', 'price', 'duration_minutes', 'icon'],
+    ['Haircut', 'قص شعر', 'Hair', '120', '45', '✂️'],
+    ['Hair Color', 'صبغ شعر', 'Hair', '350', '90', '🎨'],
+    ['Manicure', 'مانيكير', 'Nails', '100', '45', '💅'],
+    ['Facial', 'تنظيف بشرة', 'Skin', '250', '60', '🌸'],
+    ['Massage', 'مساج', 'Body', '300', '60', '🧖'],
   ];
-  const csv = rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n');
+  const csv = '\uFEFF'+rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -9330,7 +9330,8 @@ function importServicesCSV(input) {
 
     // Parse header row
     const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
-    const nameIdx     = headers.findIndex(h => h.includes('name'));
+    const nameArIdx   = headers.findIndex(h => h.includes('name_ar') || h.includes('arabic') || h.includes('nameار'));
+    const nameIdx     = headers.findIndex((h,idx) => h.includes('name') && idx!==nameArIdx);
     const catIdx      = headers.findIndex(h => h.includes('cat'));
     const priceIdx    = headers.findIndex(h => h.includes('price'));
     const durIdx      = headers.findIndex(h => h.includes('dur') || h.includes('min'));
@@ -9348,7 +9349,8 @@ function importServicesCSV(input) {
       if (!line) continue;
       // Handle quoted fields with commas inside
       const cols = parseCSVLine(line);
-      const name  = cols[nameIdx]  ? cols[nameIdx].trim()  : '';
+      const name   = cols[nameIdx]   ? cols[nameIdx].trim()   : '';
+      const nameAr = (nameArIdx>-1&&cols[nameArIdx]) ? cols[nameArIdx].trim() : '';
       const cat   = cols[catIdx]   ? cols[catIdx].trim()   : 'General';
       const price = parseFloat(cols[priceIdx]) || 0;
       const dur   = parseInt(cols[durIdx])     || 60;
@@ -9357,7 +9359,7 @@ function importServicesCSV(input) {
       if (!name) { errors.push('Row ' + (i+1) + ': missing name'); continue; }
       if (price <= 0) { errors.push('Row ' + (i+1) + ': invalid price for "' + name + '"'); continue; }
 
-      services.push({ name, cat, price, duration: dur, icon });
+      services.push({ name, nameAr, cat, price, duration: dur, icon });
     }
 
     if (services.length === 0) {
@@ -9393,7 +9395,7 @@ function showCSVPreviewModal(services, errors) {
     : '';
 
   const previewRows = services.slice(0, 8).map(s =>
-    '<tr><td>' + (s.icon||'💅') + '</td><td><b>' + s.name + '</b></td><td>' + s.cat + '</td><td>' + cur + ' ' + s.price + '</td><td>' + s.duration + ' min</td></tr>'
+    '<tr><td>' + (s.icon||'💅') + '</td><td><b>' + s.name + '</b>' + (s.nameAr?'<div dir="rtl" style="font-size:11px;color:#64748b">'+s.nameAr+'</div>':'') + '</td><td>' + s.cat + '</td><td>' + cur + ' ' + s.price + '</td><td>' + s.duration + ' min</td></tr>'
   ).join('');
   const moreText = services.length > 8 ? '<tr><td colspan="5" style="text-align:center;color:#94a3b8;font-size:12px">...and ' + (services.length - 8) + ' more services</td></tr>' : '';
 
@@ -9440,18 +9442,28 @@ async function confirmImportServices(services) {
       }
       // Save service to Supabase
       const catRow = db._catRows ? db._catRows.find(c => c.name === s.cat) : null;
-      const row = await sbInsert('services', {
+      const _svcPayload = {
         branch_id:   db.branchId,
         category_id: catRow ? catRow.id : null,
         name:        s.name,
+        name_ar:     s.nameAr || null,
         icon:        s.icon || '💅',
         price:       s.price,
         duration:    s.duration || 60,
         active:      true
-      });
+      };
+      let row;
+      try{
+        row = await sbInsert('services', _svcPayload);
+      }catch(e){
+        if(e.message && /name_ar/i.test(e.message)){
+          const _p2 = Object.assign({}, _svcPayload); delete _p2.name_ar;
+          row = await sbInsert('services', _p2);
+        } else { throw e; }
+      }
       if (row) {
         db.services.push({
-          id: row.id, name: s.name, icon: s.icon || '💅',
+          id: row.id, name: s.name, nameAr: s.nameAr || '', icon: s.icon || '💅',
           price: s.price, duration: s.duration || 60,
           cat: s.cat, active: true
         });
