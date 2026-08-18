@@ -439,7 +439,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
 .receipt-preview .r-line{border-top:1px dashed #555;margin:6px 0}
 .receipt-preview .r-row{display:flex;justify-content:space-between;align-items:flex-start}
 .receipt-preview .r-row .r-name{flex:1;margin-right:8px}
-.receipt-preview .r-footer{font-size:10px;text-align:center;color:#555;margin-top:4px}
+.receipt-preview .r-footer{font-size:10px;text-align:center;color:#000;margin-top:4px}
 .receipt-preview .r-pts{background:#000;color:#fff;text-align:center;padding:4px 0;margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.5px}
 @media print{
   @page{
@@ -10153,9 +10153,9 @@ function buildReceiptHTML(sale, isPreview){
   items.forEach(it=>{
     const qty=it.qty&&it.qty>1?` x${it.qty}`:'';
     html+=`<div class="r-row"><span class="r-name">${it.service||it.name}${qty}</span><span>${cur} ${it.price}</span></div>`;
-    if(it.nameAr) html+=`<div dir="rtl" style="font-size:10px;color:#444;padding-right:4px;text-align:right">${it.nameAr}</div>`;
+    if(it.nameAr) html+=`<div dir="rtl" style="font-size:10px;color:#000;padding-right:4px;text-align:right">${it.nameAr}</div>`;
     if(!_sameStaffAll&&it.staff){
-      html+=`<div style="font-size:9px;color:#666;padding-left:4px">— ${it.staff}</div>`;
+      html+=`<div style="font-size:9px;color:#000;padding-left:4px">— ${it.staff}</div>`;
     }
   });
 
@@ -10167,7 +10167,7 @@ function buildReceiptHTML(sale, isPreview){
   html+=`<div class="r-row r-bold" style="font-size:14px"><span>TOTAL</span><span>${cur} ${total}</span></div>`;
   // Show refunded stamp
   if(sale&&sale.status==='refunded'){
-    html+=`<div style="text-align:center;margin:6px 0;padding:4px 6px;border:2px solid #1e40af;color:#1e40af;font-weight:800;font-size:12px;letter-spacing:2px">★ REFUNDED ★</div>`;
+    html+=`<div style="text-align:center;margin:6px 0;padding:4px 6px;border:2px solid #000;color:#000;font-weight:800;font-size:12px;letter-spacing:2px">★ REFUNDED ★</div>`;
   }
   // Show split payment breakdown
   if(payment==='split'&&sale&&sale.splitPayments){
@@ -10187,7 +10187,7 @@ function buildReceiptHTML(sale, isPreview){
     if(ptsEarned>0) html+=`<div style="font-size:11px">⭐ Points earned this visit: +${ptsEarned}</div>`;
     html+=`<div style="font-size:11px">⭐ Total points balance: ${custPts+(ptsEarned&&!sale?ptsEarned:0)} pts</div>`;
     const rd=s.ptsRedeem||100;
-    html+=`<div style="font-size:10px;color:#555">Redeem ${rd} pts = ${cur} 1 discount</div>`;
+    html+=`<div style="font-size:10px;color:#000">Redeem ${rd} pts = ${cur} 1 discount</div>`;
   }
 
   // Footer
@@ -10196,7 +10196,7 @@ function buildReceiptHTML(sale, isPreview){
     html+=`<div class="r-footer">${s.receiptFooter.replace(/\n/g,'<br>')}</div>`;
   }
 
-  html+=`<div style="text-align:center;font-size:9px;margin-top:8px;color:#aaa">Powered by SOLO POS</div>`;
+  html+=`<div style="text-align:center;font-size:9px;margin-top:8px;color:#000">Powered by SOLO POS</div>`;
   html+=`</div>`;
   return html;
 }
@@ -10237,7 +10237,7 @@ function printReceipt(saleId){
       .r-line{border-top:1px dashed #555;margin:4px 0}
       .r-row{display:flex;justify-content:space-between;align-items:flex-start;gap:4px}
       .r-name{flex:1;word-break:break-word}
-      .r-footer{font-size:9.5px;text-align:center;color:#555;margin-top:3px}
+      .r-footer{font-size:9.5px;text-align:center;color:#000;margin-top:3px}
     </style>
   </head><body>
     ${receiptHTML}
