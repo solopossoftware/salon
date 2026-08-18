@@ -676,12 +676,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;min-height:1
                 <button id="pos-mode-prd" class="pos-mode-btn" onclick="setPOSMode('product')">📦 Products</button>
               </div>
             </div>
-            <div style="padding:6px 8px 2px;display:flex;gap:6px">
+            <div style="padding:6px 8px 2px">
               <input type="search" id="pos-search" placeholder="🔍 Search, or scan a barcode..."
                 oninput="renderPOS()" onkeydown="posSearchBarcodeCheck(event)"
-                style="flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;background:#f8fafc">
-              <button onclick="startPOSBarcodeScanner()" title="Scan product barcode with camera"
-                style="flex-shrink:0;padding:8px 12px;border-radius:8px;border:1.5px solid #1e40af;background:#eef2fb;color:#1e40af;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📷 Scan</button>
+                style="width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;background:#f8fafc">
             </div>
             <div class="cat-tabs" id="pos-cats"></div>
             <div class="svc-grid" id="pos-svcs"></div>
@@ -2917,7 +2915,15 @@ function navTo(page){
   if(fab) fab.style.display=(page==='pos'&&window.innerWidth<=640)?'flex':'none';
   if(page!=='pos') closeBillDrawer();
   if(page==='dashboard')renderDashboard();
-  if(page==='pos')renderPOS();
+  if(page==='pos'){
+    renderPOS();
+    setTimeout(function(){
+      const s=document.getElementById('pos-search');
+      const active=document.activeElement;
+      const nothingElseFocused = !active || active===document.body || active.tagName==='BODY';
+      if(s && nothingElseFocused) s.focus();
+    },150);
+  }
   if(page==='appointments'){renderCalendar();setTimeout(renderApptSavedList,100);}
   if(page==='customers')renderCustomers();
   if(page==='staff')renderStaff();
@@ -3529,57 +3535,6 @@ function posSearchBarcodeCheck(e){
     renderPOS();
   }
   // If no exact match, leave the value as-is so it still works as a normal text search
-}
-
-// Camera-based barcode scanning for POS (tablets/phones without a physical scanner)
-function startPOSBarcodeScanner(){
-  if(!('BarcodeDetector' in window)){
-    showToast('Camera scanning not supported on this device — use a USB/Bluetooth scanner or type the code in search','warn');
-    const s=document.getElementById('pos-search'); if(s) s.focus();
-    return;
-  }
-  const bd=new BarcodeDetector({formats:['ean_13','ean_8','code_128','code_39','qr_code','upc_a','upc_e']});
-  const scanModal=document.createElement('div');
-  scanModal.style.cssText='position:fixed;inset:0;background:#000a;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  scanModal.innerHTML='<div style="background:white;border-radius:12px;padding:16px;width:min(92vw,400px)"><div style="font-weight:700;margin-bottom:10px">📷 Point camera at product barcode</div><video id="pos-scan-video" autoplay playsinline style="width:100%;border-radius:8px;background:#000"></video><div id="pos-scan-status" style="font-size:12px;color:#64748b;margin:8px 0">Scanning… items add automatically</div><button onclick="stopPOSBarcodeScanner()" style="width:100%;padding:10px;border-radius:8px;background:#1e40af;color:white;border:none;font-size:13px;font-weight:700;cursor:pointer">✕ Done</button></div>';
-  document.body.appendChild(scanModal);
-  window._posScanModal=scanModal;
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-    .then(function(stream){
-      const vid=document.getElementById('pos-scan-video');
-      if(!vid){stream.getTracks().forEach(t=>t.stop());return;}
-      vid.srcObject=stream;
-      window._posScanStream=stream;
-      let lastCode='', lastTime=0;
-      function scan(){
-        if(!document.getElementById('pos-scan-video')) return;
-        bd.detect(vid).then(function(codes){
-          if(codes.length>0){
-            const code=codes[0].rawValue;
-            const now=Date.now();
-            // Avoid re-adding the same code repeatedly while it's still in frame
-            if(code!==lastCode || now-lastTime>2000){
-              lastCode=code; lastTime=now;
-              posAddByBarcode(code);
-              const st=document.getElementById('pos-scan-status');
-              if(st) st.textContent='Last scanned: '+code;
-            }
-          }
-          window._posScanFrame=requestAnimationFrame(scan);
-        }).catch(function(){ window._posScanFrame=requestAnimationFrame(scan); });
-      }
-      vid.onloadedmetadata=function(){ window._posScanFrame=requestAnimationFrame(scan); };
-    })
-    .catch(function(){
-      stopPOSBarcodeScanner();
-      showToast('Camera not available — type the barcode in search instead','warn');
-      const s=document.getElementById('pos-search'); if(s) s.focus();
-    });
-}
-function stopPOSBarcodeScanner(){
-  if(window._posScanFrame) cancelAnimationFrame(window._posScanFrame);
-  if(window._posScanStream) window._posScanStream.getTracks().forEach(t=>t.stop());
-  if(window._posScanModal){ window._posScanModal.remove(); window._posScanModal=null; }
 }
 
 function toggleBill(id){addServiceToBill(id);}
