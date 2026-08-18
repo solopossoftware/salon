@@ -1610,7 +1610,7 @@ class SupabaseDB {
 
     /* Inventory */
     this.inventory = (inv||[]).map(p => ({
-      id: p.id, name: p.name, cat: p.category,
+      id: p.id, name: p.name, cat: p.category, sku: p.sku||null,
       stock: p.stock||0, minStock: p.min_stock||3,
       price: parseFloat(p.cost_price||0),
       sellPrice: parseFloat(p.sell_price||0),
@@ -2012,7 +2012,7 @@ class SupabaseDB {
   }
 
   async saveInventoryItem(data) {
-    const row = await sbInsert('inventory', {
+    const payload = {
       branch_id:   this.branchId,
       name:        data.name,  category: data.cat||'Other',
       stock:       data.stock||0,  min_stock: data.minStock||3,
@@ -2022,8 +2022,18 @@ class SupabaseDB {
       volume_ml:   data.volumeMl||null,
       current_ml:  data.currentMl||null,
       daily_usage_ml: data.dailyUsageMl!=null?data.dailyUsageMl:null,
-      image_data: data.imageData||null
-    });
+      image_data: data.imageData||null,
+      sku: data.sku||null
+    };
+    let row;
+    try{
+      row = await sbInsert('inventory', payload);
+    }catch(e){
+      if(e.message && /\bsku\b/i.test(e.message)){
+        const p2 = Object.assign({}, payload); delete p2.sku;
+        row = await sbInsert('inventory', p2);
+      } else { throw e; }
+    }
     const p = { id:row.id, name:row.name, cat:row.category,
       stock:row.stock, minStock:row.min_stock,
       price:row.cost_price, sellPrice:row.sell_price,
@@ -2031,7 +2041,8 @@ class SupabaseDB {
       imageData:row.image_data||data.imageData||null,
       volumeMl:row.volume_ml||data.volumeMl||null,
       currentMl:row.current_ml||data.currentMl||null,
-      dailyUsageMl:row.daily_usage_ml!=null?row.daily_usage_ml:data.dailyUsageMl
+      dailyUsageMl:row.daily_usage_ml!=null?row.daily_usage_ml:data.dailyUsageMl,
+      sku: row.sku!=null ? row.sku : (data.sku||null)
     };
     this.inventory.push(p);
     return p;
@@ -2042,7 +2053,7 @@ class SupabaseDB {
     if (p) Object.assign(p, data);
     await sbUpdate('inventory', 'id=eq.'+id,
       { stock:data.stock, name:data.name,
-        cost_price:data.price, sell_price:data.sellPrice });
+        cost_price:data.price, sell_price:data.sellPrice, sku:data.sku });
   }
 
   async saveExpense(data) {
@@ -5790,6 +5801,7 @@ function editStock(id){
   const sellPr=item.sellPrice||Math.round(item.price*1.4);
   showModal(`<div class="modal-title">Edit Product — ${item.name}</div>
     <div class="form-row"><label>Product Name</label><input type="text" id="es-name" value="${item.name}"></div>
+    <div class="form-row"><label>Barcode / SKU</label><input type="text" id="es-barcode" value="${item.sku||''}" placeholder="Scan or enter barcode" style="font-family:monospace"></div>
     <div class="form-row"><label>Units in Stock</label>
       <div style="display:flex;gap:6px;align-items:center">
         <input type="number" id="es-stock" value="${item.stock}" style="flex:1">
@@ -5862,6 +5874,7 @@ function toggleLiqFields(){
 function saveStock(id){
   const item=db.inventory.find(x=>x.id===id);if(!item)return;
   item.name=document.getElementById('es-name').value||item.name;
+  item.sku=(document.getElementById('es-barcode')?.value||'').trim()||null;
   item.stock=parseInt(document.getElementById('es-stock').value)||0;
   item.minStock=parseInt(document.getElementById('es-min').value)||0;
   item.price=parseFloat(document.getElementById('es-price').value)||0;
@@ -5896,7 +5909,7 @@ function saveStock(id){
 
 function _doSaveStock(id, item){
   const patch = {
-    name:item.name, stock:item.stock, min_stock:item.minStock,
+    name:item.name, sku:item.sku||null, stock:item.stock, min_stock:item.minStock,
     cost_price:item.price, sell_price:item.sellPrice,
     is_liquid:item.isLiquid,
     volume_ml:item.volumeMl||null,
@@ -5904,7 +5917,13 @@ function _doSaveStock(id, item){
     daily_usage_ml:item.dailyUsageMl!=null?item.dailyUsageMl:null,
     image_data:item.imageData||null
   };
-  sbUpdate('inventory','id=eq.'+id,patch).catch(function(e){console.warn('Inventory update error:',e);});
+  sbUpdate('inventory','id=eq.'+id,patch).catch(function(e){
+    console.warn('Inventory update error:',e);
+    if(e.message && /\bsku\b/i.test(e.message)){
+      const p2=Object.assign({},patch); delete p2.sku;
+      sbUpdate('inventory','id=eq.'+id,p2).catch(function(e2){console.warn('Inventory update retry error:',e2);});
+    }
+  });
   closeModal(); renderInventory(); showToast('✅ Product updated');
 }
 function updateLiquid(id){
