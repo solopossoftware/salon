@@ -4801,7 +4801,7 @@ function apptClick(id){
     : [a.service||''];
   svcList=(db.services||[]).filter(function(s){return s.active!==false;}).map(function(s){
     const checked=_curSvcNames.includes(s.name)?'checked':'';
-    return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;background:'+(checked?'#eff6ff':'white')+';border:1px solid '+(checked?'#bfdbfe':'#f1f5f9')+'">'
+    return '<label data-search="'+s.name.toLowerCase()+'" style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;background:'+(checked?'#eff6ff':'white')+';border:1px solid '+(checked?'#bfdbfe':'#f1f5f9')+'">'
       +'<input type="checkbox" class="appt-edit-svc-chk" value="'+s.id+'" data-name="'+s.name+'" data-dur="'+s.duration+'" data-price="'+s.price+'" '+(checked?'checked':'')+'>'
       +s.name+' <span style="color:#94a3b8;font-size:11px">'+s.duration+' min</span>'
       +'</label>';
@@ -4827,7 +4827,9 @@ function apptClick(id){
       </div>
     </div>
     <div class="form-row"><label>Services <span style="font-size:11px;color:#94a3b8;font-weight:400">(check all that apply)</span></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:140px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;background:#fafafa">
+      <input type="text" id="ma-edit-svc-search" placeholder="🔍 Search services..." oninput="filterApptServiceList('ma-edit-svc-list')"
+        style="width:100%;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;margin-bottom:6px;box-sizing:border-box">
+      <div id="ma-edit-svc-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:140px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;background:#fafafa">
         ${svcList}
       </div>
       <input type="text" id="ma-edit-note" value="${a.notes||''}" placeholder="Additional notes..." 
@@ -4887,6 +4889,18 @@ function deleteAppt(id){
     .catch(e=>showToast('Error: '+e.message,'warn'));
 }
 
+// Filter the service checkbox list (Book/Edit Appointment) by search text, without losing checked state
+function filterApptServiceList(listId){
+  const input=document.getElementById(listId==='ma-svc-list'?'ma-svc-search':'ma-edit-svc-search');
+  const q=(input?.value||'').toLowerCase().trim();
+  const list=document.getElementById(listId);
+  if(!list) return;
+  list.querySelectorAll('label').forEach(function(lbl){
+    const name=lbl.dataset.search||'';
+    lbl.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+  });
+}
+
 function showNewAppt(date,slot,timeStr,staffPrefill){
   const d=date||dcFmt(dcDate);
   const t=timeStr||'09:00';
@@ -4894,14 +4908,16 @@ function showNewAppt(date,slot,timeStr,staffPrefill){
   const DURATIONS=[15,20,30,45,60,75,90,120];
   // Build service checkboxes (active only)
   const _newSvcChks=(db.services||[]).filter(function(s){return s.active!==false;}).map(function(s){
-    return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;background:white;border:1px solid #f1f5f9">'      +'<input type="checkbox" class="appt-svc-chk" value="'+s.id+'" data-name="'+s.name+'" data-dur="'+s.duration+'" data-price="'+s.price+'" onchange="updateApptDuration()">'      +s.name+' <span style="color:#94a3b8;font-size:11px">'+s.duration+' min · '+dbSettings().currency+' '+s.price+'</span>'      +'</label>';
+    return '<label data-search="'+s.name.toLowerCase()+'" style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;background:white;border:1px solid #f1f5f9">'      +'<input type="checkbox" class="appt-svc-chk" value="'+s.id+'" data-name="'+s.name+'" data-dur="'+s.duration+'" data-price="'+s.price+'" onchange="updateApptDuration()">'      +s.name+' <span style="color:#94a3b8;font-size:11px">'+s.duration+' min · '+dbSettings().currency+' '+s.price+'</span>'      +'</label>';
   }).join('');
 
   showModal(`<div class="modal-title">Book Appointment</div>
     <div class="form-row"><label>Customer</label><select id="ma-cust"><option value="">Walk-in</option>${db.customers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
     <div class="form-row">
       <label>Services <span style="font-size:11px;color:#94a3b8;font-weight:400">(check all that apply)</span></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:150px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;background:#fafafa">
+      <input type="text" id="ma-svc-search" placeholder="🔍 Search services..." oninput="filterApptServiceList('ma-svc-list')"
+        style="width:100%;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;margin-bottom:6px;box-sizing:border-box">
+      <div id="ma-svc-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:150px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;background:#fafafa">
         ${_newSvcChks||'<div style="color:#94a3b8;padding:8px">No services found. Add services in Admin first.</div>'}
       </div>
       <div style="font-size:11px;color:#0d9488;margin-top:4px">Duration auto-calculates from selected services</div>
